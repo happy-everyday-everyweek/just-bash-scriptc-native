@@ -11,8 +11,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@scriptc/compiler": "^0.1.7",
+    "@scriptc/compiler": "0.1.7",
     "picocolors": "^1.1.1",
-    "scriptc": "^0.1.6"
+    "scriptc": "0.1.6"
   }
 }

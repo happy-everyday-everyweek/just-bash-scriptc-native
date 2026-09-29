@@ -6,8 +6,7 @@ cd "$(dirname "$0")/.."
 rm -rf .toolchain
 mkdir -p .toolchain
 cp ci/toolchain/package.json .toolchain/package.json
-cp ci/toolchain/package-lock.json .toolchain/package-lock.json
-( cd .toolchain && npm ci --no-audit --no-fund )
+( cd .toolchain && npm install --no-audit --no-fund )
 
 COMPILER_DIST=.toolchain/node_modules/@scriptc/compiler/dist
 cp ci/toolchain/patched/report.js "$COMPILER_DIST/coverage/report.js"
