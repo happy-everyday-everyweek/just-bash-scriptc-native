@@ -1,0 +1,26 @@
+node_modules
+package-lock.json
+.DS_Store
+.vscode
+.idea
+.env
+.env.*
+/coverage
+debug-*.ts
+test-*.ts
+profile-*.mjs
+*.cpuprofile
+bench-*.mjs
+todo/
+*.parsed.json
+.pnpm-store
+.docs-test-tmp/
+fuzz-*.log
+.claude/settings.local.json
+.deepsec/
+plans/
+
+# native port (ci)
+.toolchain/
+ci-out/
+!ci/toolchain/package-lock.json

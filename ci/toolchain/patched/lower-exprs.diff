@@ -1,0 +1,2 @@
+8489a8490
+>         console.error("[LUP-CRASH] loc=" + JSON.stringify(locOf(expr) || null) + " kind=" + value.type.kind + " name=" + (expr.name && expr.name.text));

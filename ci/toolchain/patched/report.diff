@@ -1,0 +1,38 @@
+27c27
+<             return out.join("\n");
+---
+>             return __safeJoin(out);
+40c40
+<             return out.join("\n");
+---
+>             return __safeJoin(out);
+54c54
+<         return out.join("\n");
+---
+>         return __safeJoin(out);
+181c181
+<         return out.join("\n");
+---
+>         return __safeJoin(out);
+217c217
+<     return out.join("\n");
+---
+>     return __safeJoin(out);
+225c225
+<         const what = d.message.replace(/ (?:is|are) not supported yet$/, "");
+---
+>         const what = d.message.replace(/ (?:is|are) not supported yet$/, "").slice(0, 220);
+238c238,247
+< //# sourceMappingURL=report.js.map
+\ No newline at end of file
+---
+> //# sourceMappingURL=report.js.map
+> function __safeJoin(out) {
+>   let tot = 0;
+>   for (const l of out) tot += (typeof l === "string" ? l.length : 0) + 1;
+>   process.stderr.write("[DBG] lines=" + out.length + " chars=" + tot + "\n");
+>   const MAX = 32 * 1024 * 1024;
+>   if (tot <= MAX) return out.join("\n");
+>   const head = out.slice(0, 400).map((l) => (typeof l === "string" && l.length > 100000 ? l.slice(0, 100000) + " ...[CLAMPED]" : l));
+>   return head.join("\n") + "\n[TRUNCATED REPORT] lines=" + out.length + " chars=" + tot;
+> }
