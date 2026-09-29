@@ -26,7 +26,7 @@ jobs:
       - name: Run standard suite
         working-directory: packages/just-bash
         run: |
-          node node_modules/.bin/vitest run \
+          pnpm exec vitest run \
             --exclude src/security/fuzzing/ \
             --exclude src/commands/python3/ \
             --exclude src/commands/sqlite3/ \
