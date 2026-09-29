@@ -11,11 +11,12 @@ export interface CombinedAbortSignal {
 export function combineAbortSignals(
   signals: Array<AbortSignal | undefined>,
 ): CombinedAbortSignal {
-  const uniqueSignals = [
-    ...new Set(
-      signals.filter((signal): signal is AbortSignal => signal !== undefined),
-    ),
-  ];
+  const uniqueSignals: AbortSignal[] = [];
+  for (const signal of signals) {
+    if (signal !== undefined && uniqueSignals.indexOf(signal) === -1) {
+      uniqueSignals.push(signal);
+    }
+  }
   if (uniqueSignals.length === 0) {
     return { signal: undefined, cleanup() {} };
   }

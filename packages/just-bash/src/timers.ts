@@ -12,12 +12,12 @@
 import { DefenseInDepthBox } from "./security/defense-in-depth-box.js";
 
 const nativeSetTimeout = (callback: () => void, delay?: number): unknown =>
-  setTimeout(callback, delay);
+  setTimeout(callback, delay ?? 0);
 const nativeClearTimeout = (handle: unknown): void => {
   clearTimeout(handle as unknown as number);
 };
 const nativeSetInterval = (callback: () => void, delay?: number): unknown =>
-  setInterval(callback, delay);
+  setInterval(callback, delay ?? 0);
 const nativeClearInterval = (handle: unknown): void => {
   clearInterval(handle as unknown as number);
 };
