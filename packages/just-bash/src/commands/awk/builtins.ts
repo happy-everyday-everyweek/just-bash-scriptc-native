@@ -1,4 +1,4 @@
-import { parseIntDecimal } from "../../utils/num-parse.js";
+import { parseFloatDecimal, parseIntDecimal } from "../../utils/num-parse.js";
 /**
  * AWK Built-in Functions
  *
@@ -30,13 +30,12 @@ export type AwkBuiltinFn = (
 // Helper functions for type conversion
 function toNumber(val: AwkValue): number {
   if (typeof val === "number") return val;
-  const n = parseFloat(val);
+  const n = parseFloatDecimal(val);
   return Number.isNaN(n) ? 0 : n;
 }
 
 function toAwkString(val: AwkValue): string {
   if (typeof val === "string") return val;
-  if (Number.isInteger(val)) return String(val);
   return String(val);
 }
 
@@ -1007,30 +1006,30 @@ export function formatPrintf(
 
 // ─── Built-in Function Registry ─────────────────────────────────
 
-export const awkBuiltins: Map<string, AwkBuiltinFn> = new Map([
+export const awkBuiltins: Array<{ name: string; fn: AwkBuiltinFn }> = [
   // String functions
-  ["length", awkLength],
-  ["substr", awkSubstr],
-  ["index", awkIndex],
-  ["split", awkSplit],
-  ["sub", awkSub],
-  ["gsub", awkGsub],
-  ["match", awkMatch],
-  ["gensub", awkGensub],
-  ["tolower", awkTolower],
-  ["toupper", awkToupper],
-  ["sprintf", awkSprintf],
+  { name: "length", fn: awkLength },
+  { name: "substr", fn: awkSubstr },
+  { name: "index", fn: awkIndex },
+  { name: "split", fn: awkSplit },
+  { name: "sub", fn: awkSub },
+  { name: "gsub", fn: awkGsub },
+  { name: "match", fn: awkMatch },
+  { name: "gensub", fn: awkGensub },
+  { name: "tolower", fn: awkTolower },
+  { name: "toupper", fn: awkToupper },
+  { name: "sprintf", fn: awkSprintf },
 
   // Math functions
-  ["int", awkInt],
-  ["sqrt", awkSqrt],
-  ["sin", awkSin],
-  ["cos", awkCos],
-  ["atan2", awkAtan2],
-  ["log", awkLog],
-  ["exp", awkExp],
-  ["rand", awkRand],
-  ["srand", awkSrand],
+  { name: "int", fn: awkInt },
+  { name: "sqrt", fn: awkSqrt },
+  { name: "sin", fn: awkSin },
+  { name: "cos", fn: awkCos },
+  { name: "atan2", fn: awkAtan2 },
+  { name: "log", fn: awkLog },
+  { name: "exp", fn: awkExp },
+  { name: "rand", fn: awkRand },
+  { name: "srand", fn: awkSrand },
 
   // Unsupported functions (security/sandboxing)
   [
@@ -1049,4 +1048,4 @@ export const awkBuiltins: Map<string, AwkBuiltinFn> = new Map([
   ["systime", unimplemented("systime")],
   ["mktime", unimplemented("mktime")],
   ["strftime", unimplemented("strftime")],
-]);
+];

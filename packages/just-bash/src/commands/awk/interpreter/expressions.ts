@@ -21,6 +21,7 @@ import type {
   AwkVariable,
 } from "../ast.js";
 import { awkBuiltins } from "../builtins.js";
+import type { AwkBuiltinFn } from "../builtins.js";
 import type { AwkRuntimeContext } from "./context.js";
 import { getField, setCurrentLine, setField } from "./fields.js";
 import {
@@ -69,7 +70,7 @@ function withDefenseContext<T>(
 /**
  * Evaluate an AWK expression asynchronously.
  */
-export async function evalExpr(
+async function evalExprInner(
   ctx: AwkRuntimeContext,
   expr: AwkExpr,
 ): Promise<AwkValue> {
@@ -359,10 +360,18 @@ async function evalFunctionCall(
 ): Promise<AwkValue> {
   assertAwkDefenseContext(ctx, "function call evaluation");
   // Check for built-in functions first
-  const builtin = awkBuiltins.get(name);
+  let builtin: AwkBuiltinFn | undefined = undefined;
+  for (const entry of awkBuiltins) {
+    if (entry.name === name) {
+      builtin = entry.fn;
+      break;
+    }
+  }
   if (builtin) {
     // Built-ins use a wrapper that handles async
-    return builtin(args, ctx, { evalExpr: (e: AwkExpr) => evalExpr(ctx, e) });
+    return await builtin(args, ctx, {
+      evalExpr: (e: AwkExpr) => evalExpr(ctx, e),
+    });
   }
 
   // Check for user-defined function
@@ -845,4 +854,12 @@ async function evalTuple(
   return withDefenseContext(ctx, "tuple final element", () =>
     evalExpr(ctx, elements[elements.length - 1]),
   );
+}
+
+/** Public entry: clamp internal undefined flows to the canonical empty string. */
+export async function evalExpr(
+  ctx: AwkRuntimeContext,
+  expr: AwkExpr,
+): Promise<AwkValue> {
+  return (await evalExprInner(ctx, expr)) ?? "";
 }

@@ -5,6 +5,7 @@
  */
 
 import { createUserRegex } from "../../../regex/index.js";
+import { parseFloatDecimal } from "../../../utils/num-parse.js";
 import type { AwkValue } from "./types.js";
 
 /**
@@ -37,7 +38,7 @@ export function isTruthy(val: AwkValue): boolean {
  */
 export function toNumber(val: AwkValue): number {
   if (typeof val === "number") return val;
-  const n = parseFloat(val);
+  const n = parseFloatDecimal(val);
   return Number.isNaN(n) ? 0 : n;
 }
 
@@ -47,7 +48,6 @@ export function toNumber(val: AwkValue): number {
  */
 export function toAwkString(val: AwkValue): string {
   if (typeof val === "string") return val;
-  if (Number.isInteger(val)) return String(val);
   return String(val);
 }
 
