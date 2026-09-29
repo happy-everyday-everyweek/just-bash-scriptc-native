@@ -21,7 +21,6 @@ const nativeSetInterval = (callback: () => void, delay?: number): unknown =>
 const nativeClearInterval = (handle: unknown): void => {
   clearInterval(handle as unknown as number);
 };
-};
 
 type TimerCallback = (...args: unknown[]) => unknown;
 
