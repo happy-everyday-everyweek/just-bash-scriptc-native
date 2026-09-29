@@ -685,7 +685,7 @@ export class Bash {
   ): Promise<BashExecResult> {
     const finishResult = (result: BashExecResult): BashExecResult =>
       shouldLogResult ? this.logResult(result) : result;
-    const combinedAbort = combineAbortSignals(parentSignal, options?.signal);
+    const combinedAbort = combineAbortSignals([parentSignal, options?.signal]);
     const effectiveOptions = options
       ? { ...options, signal: combinedAbort.signal }
       : { signal: combinedAbort.signal };

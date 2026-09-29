@@ -9,7 +9,7 @@ export interface CombinedAbortSignal {
  * listeners are removable by the caller's finally block.
  */
 export function combineAbortSignals(
-  ...signals: Array<AbortSignal | undefined>
+  signals: Array<AbortSignal | undefined>,
 ): CombinedAbortSignal {
   const uniqueSignals = [
     ...new Set(

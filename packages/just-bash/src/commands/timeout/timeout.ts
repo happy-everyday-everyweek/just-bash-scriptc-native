@@ -128,7 +128,7 @@ export const timeoutCommand: RuntimeCommand = {
     // When the timeout fires, the signal is aborted, causing the interpreter
     // to stop at the next statement boundary — no post-timeout side effects.
     const controller = new AbortController();
-    const combinedAbort = combineAbortSignals(ctx.signal, controller.signal);
+    const combinedAbort = combineAbortSignals([ctx.signal, controller.signal]);
 
     let timerId: ReturnType<typeof _setTimeout> | undefined;
     let abortListener: (() => void) | undefined;

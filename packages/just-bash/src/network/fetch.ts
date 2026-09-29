@@ -419,10 +419,10 @@ export function createSecureFetch(config: NetworkConfig): SecureFetch {
         ),
       effectiveTimeout,
     );
-    const combinedAbort = combineAbortSignals(
+    const combinedAbort = combineAbortSignals([
       options.signal,
       timeoutController.signal,
-    );
+    ]);
 
     try {
       // Keep preflight inside finally so rejected requests clean up.

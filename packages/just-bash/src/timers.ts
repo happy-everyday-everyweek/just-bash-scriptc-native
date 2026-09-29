@@ -11,20 +11,16 @@
  */
 import { DefenseInDepthBox } from "./security/defense-in-depth-box.js";
 
-const nativeSetTimeoutFn = globalThis.setTimeout;
-const nativeClearTimeoutFn = globalThis.clearTimeout;
-const nativeSetIntervalFn = globalThis.setInterval;
-const nativeClearIntervalFn = globalThis.clearInterval;
-
 const nativeSetTimeout = (callback: () => void, delay?: number): unknown =>
-  nativeSetTimeoutFn(callback, delay);
+  setTimeout(callback, delay);
 const nativeClearTimeout = (handle: unknown): void => {
-  nativeClearTimeoutFn(handle as unknown as number);
+  clearTimeout(handle as unknown as number);
 };
 const nativeSetInterval = (callback: () => void, delay?: number): unknown =>
-  nativeSetIntervalFn(callback, delay);
+  setInterval(callback, delay);
 const nativeClearInterval = (handle: unknown): void => {
-  nativeClearIntervalFn(handle as unknown as number);
+  clearInterval(handle as unknown as number);
+};
 };
 
 type TimerCallback = (...args: unknown[]) => unknown;

@@ -1291,10 +1291,10 @@ export async function executeWithRun(
     () => timeoutController.abort(),
     ctx.limits.maxJsTimeoutMs,
   );
-  const combinedAbort = combineAbortSignals(
+  const combinedAbort = combineAbortSignals([
     ctx.signal,
     timeoutController.signal,
-  );
+  ]);
   try {
     return await enqueue(
       async () =>
