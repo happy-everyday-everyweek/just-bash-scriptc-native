@@ -1032,20 +1032,20 @@ export const awkBuiltins: Array<{ name: string; fn: AwkBuiltinFn }> = [
   { name: "srand", fn: awkSrand },
 
   // Unsupported functions (security/sandboxing)
-  [
-    "system",
-    unsupported(
+  {
+    name: "system",
+    fn: unsupported(
       "system",
       "shell execution not allowed in sandboxed environment",
     ),
-  ],
+  },
   // close() and fflush() are no-ops in our environment (no real file handles)
   // Return 0 for success to allow programs that use them to work
-  ["close", () => 0],
-  ["fflush", () => 0],
+  { name: "close", fn: () => 0 },
+  { name: "fflush", fn: () => 0 },
 
   // Unimplemented functions
-  ["systime", unimplemented("systime")],
-  ["mktime", unimplemented("mktime")],
-  ["strftime", unimplemented("strftime")],
+  { name: "systime", fn: unimplemented("systime") },
+  { name: "mktime", fn: unimplemented("mktime") },
+  { name: "strftime", fn: unimplemented("strftime") },
 ];
