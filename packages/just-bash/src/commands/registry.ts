@@ -476,55 +476,15 @@ const commandLoaders: LazyCommandDef<CommandName>[] = [
   },
 ];
 
-// tar, yq, xan, and sqlite3 don't work in browsers
-// __BROWSER__ is defined by esbuild at build time for browser bundles
+// [native port] tar/yq/xan/sqlite3 excluded from the native build (engine/library-bound).
+// Original browser-gated registration removed here; see git history.
 declare const __BROWSER__: boolean | undefined;
-if (typeof __BROWSER__ === "undefined" || !__BROWSER__) {
-  commandLoaders.push({
-    name: "tar" as CommandName,
-    load: async () => (await import("./tar/tar.js")).tarCommand,
-  });
-  commandLoaders.push({
-    name: "yq" as CommandName,
-    load: async () => (await import("./yq/yq.js")).yqCommand,
-  });
-  commandLoaders.push({
-    name: "xan" as CommandName,
-    load: async () => (await import("./xan/xan.js")).xanCommand,
-  });
-  commandLoaders.push({
-    name: "sqlite3" as CommandName,
-    load: async () => (await import("./sqlite3/sqlite3.js")).sqlite3Command,
-  });
-}
 
-// Python commands - only registered when python is explicitly enabled
-// These introduce additional security surface (arbitrary code execution)
+// Python commands - [native port] excluded from the native build (CPython WASM bound).
 const pythonCommandLoaders: LazyCommandDef<PythonCommandName>[] = [];
-// __BROWSER__ is defined by esbuild at build time for browser bundles
-if (typeof __BROWSER__ === "undefined" || !__BROWSER__) {
-  pythonCommandLoaders.push({
-    name: "python3",
-    load: async () => (await import("./python3/python3.js")).python3Command,
-  });
-  pythonCommandLoaders.push({
-    name: "python",
-    load: async () => (await import("./python3/python3.js")).pythonCommand,
-  });
-}
 
-// JavaScript commands - only registered when javascript is explicitly enabled
+// JavaScript commands - [native port] excluded from the native build (JS engine bound).
 const jsCommandLoaders: LazyCommandDef<JavaScriptCommandName>[] = [];
-if (typeof __BROWSER__ === "undefined" || !__BROWSER__) {
-  jsCommandLoaders.push({
-    name: "js-exec",
-    load: async () => (await import("./js-exec/js-exec.js")).jsExecCommand,
-  });
-  jsCommandLoaders.push({
-    name: "node",
-    load: async () => (await import("./js-exec/js-exec.js")).nodeStubCommand,
-  });
-}
 
 // Network commands - only registered when network is configured
 const networkCommandLoaders: LazyCommandDef<NetworkCommandName>[] = [
