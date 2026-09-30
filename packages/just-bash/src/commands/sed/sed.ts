@@ -89,11 +89,6 @@ async function processContent(
   const { limits, filename, fs, cwd, coverage, requireDefenseContext } =
     options;
   assertDefenseContext(requireDefenseContext, "sed", "processing entry");
-  const withDefenseContext = <T>(
-    phase: string,
-    op: () => Promise<T>,
-  ): Promise<T> =>
-    awaitWithDefenseContext(requireDefenseContext, "sed", phase, op);
 
   // Track if input ended with newline - needed for preserving trailing newline behavior
   const inputEndsWithNewline = content.endsWith("\n");
@@ -184,7 +179,7 @@ async function processContent(
           try {
             if (read.wholeFile) {
               // r command - read entire file, append after current line
-              const fileContent = await withDefenseContext(
+              const fileContent = await withDefenseContext(requireDefenseContext, 
                 "read command file",
                 () => fs.readFile(filePath),
               );
@@ -192,7 +187,7 @@ async function processContent(
             } else {
               // R command - read one line from file
               if (!fileLineCache.has(filePath)) {
-                const fileContent = await withDefenseContext(
+                const fileContent = await withDefenseContext(requireDefenseContext, 
                   "read command file line cache",
                   () => fs.readFile(filePath),
                 );
@@ -315,7 +310,7 @@ async function processContent(
   if (fs && cwd) {
     for (const [filePath, fileContent] of fileWrites) {
       try {
-        await withDefenseContext("flush pending file writes", () =>
+        await withDefenseContext(requireDefenseContext, "flush pending file writes", () =>
           fs.writeFile(filePath, fileContent),
         );
       } catch (e) {
@@ -340,6 +335,14 @@ async function processContent(
   return { output, exitCode };
 }
 
+function withDefenseContext<T>(
+  requireDefenseContext: boolean | undefined,
+  phase: string,
+  op: () => Promise<T>,
+): Promise<T> {
+  return awaitWithDefenseContext(requireDefenseContext, "sed", phase, op);
+}
+
 export const sedCommand: RuntimeCommand = {
   name: "sed",
   async execute(
@@ -347,11 +350,6 @@ export const sedCommand: RuntimeCommand = {
     ctx: RuntimeCommandContext,
   ): Promise<ExecResult> {
     assertDefenseContext(ctx.requireDefenseContext, "sed", "execution entry");
-    const withDefenseContext = <T>(
-      phase: string,
-      op: () => Promise<T>,
-    ): Promise<T> =>
-      awaitWithDefenseContext(ctx.requireDefenseContext, "sed", phase, op);
 
     if (hasHelpFlag(args)) {
       return showHelp(sedHelp);
@@ -429,7 +427,7 @@ export const sedCommand: RuntimeCommand = {
     for (const scriptFile of scriptFiles) {
       const scriptPath = ctx.fs.resolvePath(ctx.cwd, scriptFile);
       try {
-        const scriptContent = await withDefenseContext("script file read", () =>
+        const scriptContent = await withDefenseContext(ctx.requireDefenseContext, "script file read", () =>
           ctx.fs.readFile(scriptPath),
         );
         // Split by newlines and add each line as a separate script
@@ -495,11 +493,11 @@ export const sedCommand: RuntimeCommand = {
         }
         const filePath = ctx.fs.resolvePath(ctx.cwd, file);
         try {
-          const fileContent = await withDefenseContext(
+          const fileContent = await withDefenseContext(ctx.requireDefenseContext, 
             "in-place input read",
             () => ctx.fs.readFile(filePath),
           );
-          const result = await withDefenseContext("in-place processing", () =>
+          const result = await withDefenseContext(ctx.requireDefenseContext, "in-place processing", () =>
             processContent(fileContent, commands, effectiveSilent, {
               limits: ctx.limits,
               filename: file,
@@ -516,7 +514,7 @@ export const sedCommand: RuntimeCommand = {
               exitCode: result.exitCode ?? 1,
             };
           }
-          await withDefenseContext("in-place output write", () =>
+          await withDefenseContext(ctx.requireDefenseContext, "in-place output write", () =>
             ctx.fs.writeFile(filePath, result.output),
           );
         } catch (e) {
@@ -549,7 +547,7 @@ export const sedCommand: RuntimeCommand = {
     if (files.length === 0) {
       content = decodeBytesToUtf8(ctx.stdin);
       try {
-        const result = await withDefenseContext("stdin processing", () =>
+        const result = await withDefenseContext(ctx.requireDefenseContext, "stdin processing", () =>
           processContent(content, commands, effectiveSilent, {
             limits: ctx.limits,
             fs: ctx.fs,
@@ -596,7 +594,7 @@ export const sedCommand: RuntimeCommand = {
       } else {
         const filePath = ctx.fs.resolvePath(ctx.cwd, file);
         try {
-          fileContent = await withDefenseContext("input file read", () =>
+          fileContent = await withDefenseContext(ctx.requireDefenseContext, "input file read", () =>
             ctx.fs.readFile(filePath),
           );
         } catch (e) {
@@ -631,7 +629,7 @@ export const sedCommand: RuntimeCommand = {
     }
 
     try {
-      const result = await withDefenseContext("final processing", () =>
+      const result = await withDefenseContext(ctx.requireDefenseContext, "final processing", () =>
         processContent(content, commands, effectiveSilent, {
           limits: ctx.limits,
           filename: files.length === 1 ? files[0] : undefined,
