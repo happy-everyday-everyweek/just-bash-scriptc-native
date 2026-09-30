@@ -53,22 +53,19 @@ export function createInitialState(
 
 function isStepAddress(address: SedAddress): address is StepAddress {
   if (typeof address !== "object") return false;
-  const rec = address as unknown as Record<string, string | number>;
-  return "first" in rec && "step" in rec;
+  return "first" in address && "step" in address;
 }
 
 function isRelativeOffset(
   address: SedAddress,
 ): address is import("./types.js").RelativeOffset {
   if (typeof address !== "object") return false;
-  const rec = address as unknown as Record<string, string | number>;
-  return "offset" in rec;
+  return "offset" in address;
 }
 
 function isPatternAddress(address: SedAddress): address is { pattern: string } {
   if (typeof address !== "object") return false;
-  const rec = address as unknown as Record<string, string | number>;
-  return "pattern" in rec;
+  return "pattern" in address;
 }
 
 function matchesAddress(
