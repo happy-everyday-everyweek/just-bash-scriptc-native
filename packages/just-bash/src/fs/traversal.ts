@@ -348,7 +348,10 @@ export async function traverseFileTree(
 
   while (stack.length > 0) {
     budget.checkpoint(0);
-    const item = stack.pop();
+    const lastIndex = stack.length - 1;
+    if (lastIndex < 0) break;
+    const item = stack[lastIndex];
+    stack.splice(lastIndex, 1);
     if (!item) break;
 
     if (item.kind === "leave") {

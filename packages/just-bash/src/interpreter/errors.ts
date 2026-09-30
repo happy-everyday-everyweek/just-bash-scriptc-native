@@ -19,6 +19,7 @@ import { utf8ByteLength } from "../encoding.js";
  */
 export abstract class ControlFlowError extends Error {
   internalOutputAccounting = { stdout: 0, stderr: 0 };
+  attachmentIds: number[] = [];
   constructor(
     message: string,
     public stdout: string = "",

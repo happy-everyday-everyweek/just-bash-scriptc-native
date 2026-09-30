@@ -33,7 +33,7 @@ export interface CommandExecutionBudget {
 }
 
 type Cleanup = () => void | Promise<void>;
-const OUTPUT_RELEASE_AUTHORITY = Object.freeze(Object.create(null) as object);
+const OUTPUT_RELEASE_AUTHORITY = Object.create(null) as object;
 
 /**
  * Security-sensitive accounting shared by every interpreter descended from a
@@ -69,7 +69,7 @@ export class ExecutionScope {
 
   constructor(
     private readonly limits: Required<ExecutionLimits>,
-    private readonly signal: AbortSignal | undefined = undefined,
+    private readonly signal: { aborted: boolean } | undefined = undefined,
   ) {}
 
   private fail(error: ExecutionLimitError | ExecutionAbortedError): never {

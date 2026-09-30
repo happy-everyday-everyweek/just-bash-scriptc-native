@@ -59,19 +59,13 @@ export class ExecutionOutputAccumulator {
    * so propagation updates accounting metadata without charging them again.
    */
   prependTo(error: unknown): void {
-    if (!(error instanceof Error) || error.name !== "ControlFlowError") return;
-    const tracked = error as unknown as {
-      attachmentIds?: Set<number>;
-      prependOutput(stdout: string, stderr: string): void;
-    };
-    let ids = tracked.attachmentIds;
-    if (!ids) {
-      ids = new Set();
-      tracked.attachmentIds = ids;
-    }
-    if (ids.has(this.accumulatorId)) return;
-    ids.add(this.accumulatorId);
-    tracked.prependOutput(this.stdout, this.stderr);
+    if (!(error instanceof Error)) return;
+    if (!(error instanceof ControlFlowError)) return;
+    const cf = error as ControlFlowError;
+    const ids = cf.attachmentIds;
+    if (ids.indexOf(this.accumulatorId) !== -1) return;
+    ids.push(this.accumulatorId);
+    cf.prependOutput(this.stdout, this.stderr);
   }
 
   appendResult(result: ExecResult, stdout: string = result.stdout): void {
@@ -95,16 +89,21 @@ export class ExecutionOutputAccumulator {
   }
 
   build(exitCode: number, extra?: Partial<ExecResult>): ExecResult {
-    return {
+    const result: ExecResult = {
       stdout: this.stdoutChunks.join(""),
       stderr: this.stderrChunks.join(""),
       exitCode,
-      ...extra,
       internalOutputAccounting: {
         stdout: this.stdoutBytes,
         stderr: this.stderrBytes,
       },
     };
+    if (extra) Object.assign(result, extra);
+    result.internalOutputAccounting = {
+      stdout: this.stdoutBytes,
+      stderr: this.stderrBytes,
+    };
+    return result;
   }
 
   get stdout(): string {

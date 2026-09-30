@@ -52,13 +52,27 @@ export function createInitialState(
 }
 
 function isStepAddress(address: SedAddress): address is StepAddress {
-  return typeof address === "object" && "first" in address && "step" in address;
+  return (
+    typeof address === "object" &&
+    (address as unknown as { first?: number }).first !== undefined &&
+    (address as unknown as { step?: number }).step !== undefined
+  );
 }
 
 function isRelativeOffset(
   address: SedAddress,
 ): address is import("./types.js").RelativeOffset {
-  return typeof address === "object" && "offset" in address;
+  return (
+    typeof address === "object" &&
+    (address as unknown as { offset?: number }).offset !== undefined
+  );
+}
+
+function isPatternAddress(address: SedAddress): address is { pattern: string } {
+  return (
+    typeof address === "object" &&
+    (address as unknown as { pattern?: string }).pattern !== undefined
+  );
 }
 
 function matchesAddress(
@@ -80,7 +94,7 @@ function matchesAddress(
     if (step === 0) return lineNum === first;
     return (lineNum - first) % step === 0 && lineNum >= first;
   }
-  if (typeof address === "object" && "pattern" in address) {
+  if (isPatternAddress(address)) {
     try {
       // Handle empty pattern (reuse last pattern)
       let rawPattern = address.pattern;
@@ -110,8 +124,8 @@ function serializeRange(range: AddressRange): string {
     if (addr === undefined) return "undefined";
     if (addr === "$") return "$";
     if (typeof addr === "number") return String(addr);
-    if ("pattern" in addr) return `/${addr.pattern}/`;
-    if ("first" in addr) return `${addr.first}~${addr.step}`;
+    if (isPatternAddress(addr)) return `/${addr.pattern}/`;
+    if (isStepAddress(addr)) return `${addr.first}~${addr.step}`;
     return "unknown";
   };
   return `${serializeAddr(range.start)},${serializeAddr(range.end)}`;
@@ -139,8 +153,8 @@ function isInRangeInternal(
 
   if (start !== undefined && end !== undefined) {
     // Address range - needs state tracking for pattern addresses
-    const hasPatternStart = typeof start === "object" && "pattern" in start;
-    const hasPatternEnd = typeof end === "object" && "pattern" in end;
+    const hasPatternStart = isPatternAddress(start);
+    const hasPatternEnd = isPatternAddress(end);
     const hasRelativeEnd = isRelativeOffset(end);
 
     // Handle relative offset end address (GNU extension: /pattern/,+N)
