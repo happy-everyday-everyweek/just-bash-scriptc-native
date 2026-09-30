@@ -54,7 +54,8 @@ export function createInitialState(
 function isStepAddress(address: SedAddress): address is StepAddress {
   if (typeof address === "number") return false;
   if (typeof address === "string") return false;
-  return "first" in address && "step" in address;
+  const rec = address as unknown as { offset: number } | { first: number; step: number } | { pattern: string };
+  return "first" in rec && "step" in rec;
 }
 
 function isRelativeOffset(
@@ -62,13 +63,15 @@ function isRelativeOffset(
 ): address is import("./types.js").RelativeOffset {
   if (typeof address === "number") return false;
   if (typeof address === "string") return false;
-  return "offset" in address;
+  const rec = address as unknown as { offset: number } | { first: number; step: number } | { pattern: string };
+  return "offset" in rec;
 }
 
 function isPatternAddress(address: SedAddress): address is { pattern: string } {
   if (typeof address === "number") return false;
   if (typeof address === "string") return false;
-  return "pattern" in address;
+  const rec = address as unknown as { offset: number } | { first: number; step: number } | { pattern: string };
+  return "pattern" in rec;
 }
 
 function matchesAddress(
