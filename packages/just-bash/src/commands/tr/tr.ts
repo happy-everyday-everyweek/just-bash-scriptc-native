@@ -53,7 +53,7 @@ const POSIX_CLASSES = new Map<string, string>([
     "[:cntrl:]",
     Array.from({ length: 32 }, (_, i) => String.fromCharCode(i))
       .join("")
-      .concat(String.fromCharCode(127)),
+      + String.fromCharCode(127),
   ],
   ["[:digit:]", "0123456789"],
   [
@@ -101,7 +101,7 @@ function expandRange(
   while (i < set.length) {
     useIterations();
     // Check for POSIX character classes like [:alnum:]
-    if (set[i] === "[" && set[i + 1] === ":") {
+    if (set.charAt(i) === "[" && set.charAt(i + 1) === ":") {
       let found = false;
       for (const [className, chars] of POSIX_CLASSES) {
         if (set.slice(i).startsWith(className)) {
@@ -115,8 +115,8 @@ function expandRange(
     }
 
     // Handle escape sequences
-    if (set[i] === "\\" && i + 1 < set.length) {
-      const next = set[i + 1];
+    if (set.charAt(i) === "\\" && i + 1 < set.length) {
+      const next = set.charAt(i + 1);
       if (next === "n") {
         append("\n");
       } else if (next === "t") {
@@ -131,7 +131,7 @@ function expandRange(
     }
 
     // Handle character ranges like a-z
-    if (i + 2 < set.length && set[i + 1] === "-") {
+    if (i + 2 < set.length && set.charAt(i + 1) === "-") {
       const start = set.charCodeAt(i);
       const end = set.charCodeAt(i + 2);
       const rangeLength = end >= start ? end - start + 1 : 0;
@@ -149,7 +149,7 @@ function expandRange(
       continue;
     }
 
-    append(set[i]);
+    append(set.charAt(i));
     i++;
   }
 

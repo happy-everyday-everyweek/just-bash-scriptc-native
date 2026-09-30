@@ -24,7 +24,7 @@ const DEFAULT_MAX_ITERATIONS = 10000;
 export function createInitialState(
   totalLines: number,
   filename?: string,
-  rangeStates?: Map<string, import("./types.js").RangeState>,
+  rangeStates: Map<string, import("./types.js").RangeState>,
 ): SedState {
   return {
     patternSpace: "",
@@ -122,7 +122,7 @@ function isInRangeInternal(
   lineNum: number,
   totalLines: number,
   line: string,
-  rangeStates?: Map<string, import("./types.js").RangeState>,
+  rangeStates: Map<string, import("./types.js").RangeState>,
   state?: SedState,
 ): boolean {
   if (!range || (!range.start && !range.end)) {
@@ -308,7 +308,7 @@ function isInRange(
   lineNum: number,
   totalLines: number,
   line: string,
-  rangeStates?: Map<string, import("./types.js").RangeState>,
+  rangeStates: Map<string, import("./types.js").RangeState>,
   state?: SedState,
 ): boolean {
   const result = isInRangeInternal(
@@ -358,10 +358,11 @@ function globalReplace(
     }
 
     // Match found, but not at current position
-    if (match.index !== pos) {
+    const mIndex = (match as unknown as { index: number }).index;
+    if (mIndex !== pos) {
       // Output characters up to the match
-      result += input.slice(pos, match.index);
-      pos = match.index;
+      result += input.slice(pos, mIndex);
+      pos = mIndex;
       skipZeroLengthAtNextPos = false;
       continue;
     }

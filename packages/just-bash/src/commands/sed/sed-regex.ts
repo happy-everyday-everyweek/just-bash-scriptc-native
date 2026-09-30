@@ -290,10 +290,20 @@ export function escapeForList(input: string): string {
       result += "\\v";
     } else if (code < 32 || code >= 127) {
       // Non-printable: show as octal
-      result += `\\${code.toString(8).padStart(3, "0")}`;
+      result += "\\" + octalPad3(code);
     } else {
       result += ch;
     }
   }
   return `${result}$`;
+}
+
+function octalPad3(code: number): string {
+  let out = "";
+  let value = code;
+  for (let digit = 0; digit < 3; digit++) {
+    out = "01234567".charAt(value % 8) + out;
+    value = (value - (value % 8)) / 8;
+  }
+  return out;
 }

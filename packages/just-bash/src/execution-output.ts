@@ -34,7 +34,8 @@ export class ExecutionOutputAccumulator {
   ): void {
     let bytes: number;
     try {
-      bytes = this.scope.appendOutput(
+      const scopeRef = this.scope;
+      bytes = scopeRef.appendOutput(
         stream,
         chunk,
         this.site,
@@ -58,9 +59,10 @@ export class ExecutionOutputAccumulator {
    * so propagation updates accounting metadata without charging them again.
    */
   prependTo(error: unknown): void {
-    if (!(error instanceof ControlFlowError)) return;
-    const tracked = error as ControlFlowError & {
+    if (!(error instanceof Error) || error.name !== "ControlFlowError") return;
+    const tracked = error as unknown as {
       attachmentIds?: Set<number>;
+      prependOutput(stdout: string, stderr: string): void;
     };
     let ids = tracked.attachmentIds;
     if (!ids) {
@@ -69,7 +71,7 @@ export class ExecutionOutputAccumulator {
     }
     if (ids.has(this.accumulatorId)) return;
     ids.add(this.accumulatorId);
-    error.prependOutput(this.stdout, this.stderr);
+    tracked.prependOutput(this.stdout, this.stderr);
   }
 
   appendResult(result: ExecResult, stdout: string = result.stdout): void {

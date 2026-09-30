@@ -137,7 +137,7 @@ async function processContent(
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const state: SedState = {
-      ...createInitialState(totalLines, filename, rangeStates),
+      ...createInitialState(totalLines, filename, rangeStates ?? new Map()),
       patternSpace: lines[lineIndex],
       holdSpace: holdSpace,
       lastPattern: lastPattern,
@@ -197,7 +197,7 @@ async function processContent(
               const fileLines = fileLineCache.get(filePath);
               const pos = fileLinePositions.get(filePath);
               if (fileLines && pos !== undefined && pos < fileLines.length) {
-                state.appendBuffer.push(fileLines[pos]);
+                state.appendBuffer.push(fileLines[0 + pos]);
                 fileLinePositions.set(filePath, pos + 1);
               }
             }
