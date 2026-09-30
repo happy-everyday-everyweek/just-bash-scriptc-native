@@ -98,7 +98,15 @@ export class ExecutionOutputAccumulator {
         stderr: this.stderrBytes,
       },
     };
-    if (extra) Object.assign(result, extra);
+    if (extra) {
+      if (extra.stdout !== undefined) result.stdout = extra.stdout;
+      if (extra.stderr !== undefined) result.stderr = extra.stderr;
+      if (extra.exitCode !== undefined) result.exitCode = extra.exitCode;
+      if (extra.stdoutKind !== undefined) result.stdoutKind = extra.stdoutKind;
+      if (extra.stdoutEncoding !== undefined) {
+        result.stdoutEncoding = extra.stdoutEncoding;
+      }
+    }
     result.internalOutputAccounting = {
       stdout: this.stdoutBytes,
       stderr: this.stderrBytes,

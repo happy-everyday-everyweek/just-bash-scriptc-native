@@ -34,8 +34,10 @@ export abstract class ControlFlowError extends Error {
   prependOutput(stdout: string, stderr: string): void {
     this.stdout = stdout + this.stdout;
     this.stderr = stderr + this.stderr;
-    this.internalOutputAccounting.stdout += utf8ByteLength(stdout);
-    this.internalOutputAccounting.stderr += utf8ByteLength(stderr);
+    this.internalOutputAccounting.stdout =
+      this.internalOutputAccounting.stdout + utf8ByteLength(stdout);
+    this.internalOutputAccounting.stderr =
+      this.internalOutputAccounting.stderr + utf8ByteLength(stderr);
   }
 }
 

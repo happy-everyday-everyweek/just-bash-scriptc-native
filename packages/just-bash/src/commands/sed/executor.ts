@@ -54,8 +54,8 @@ export function createInitialState(
 function isStepAddress(address: SedAddress): address is StepAddress {
   return (
     typeof address === "object" &&
-    (address as unknown as { first?: number }).first !== undefined &&
-    (address as unknown as { step?: number }).step !== undefined
+    (address as unknown as { first: number | undefined }).first !== undefined &&
+    (address as unknown as { step: number | undefined }).step !== undefined
   );
 }
 
@@ -64,14 +64,14 @@ function isRelativeOffset(
 ): address is import("./types.js").RelativeOffset {
   return (
     typeof address === "object" &&
-    (address as unknown as { offset?: number }).offset !== undefined
+    (address as unknown as { offset: number | undefined }).offset !== undefined
   );
 }
 
 function isPatternAddress(address: SedAddress): address is { pattern: string } {
   return (
     typeof address === "object" &&
-    (address as unknown as { pattern?: string }).pattern !== undefined
+    (address as unknown as { pattern: string | undefined }).pattern !== undefined
   );
 }
 
@@ -372,7 +372,7 @@ function globalReplace(
     }
 
     // Match found, but not at current position
-    const mIndex = (match as unknown as { index: number }).index;
+    const { index: mIndex } = match as unknown as { index: number };
     if (mIndex !== pos) {
       // Output characters up to the match
       result += input.slice(pos, mIndex);

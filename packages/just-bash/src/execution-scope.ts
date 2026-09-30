@@ -73,13 +73,17 @@ export class ExecutionScope {
   ) {}
 
   private fail(error: ExecutionLimitError | ExecutionAbortedError): never {
-    this.poisoned ??= error;
+    if (this.poisoned === undefined) {
+      this.poisoned = error;
+    }
     throw this.poisoned;
   }
 
   /** Permanently reject later work after an extension misses cancellation. */
   poisonAfterAbort(error: ExecutionAbortedError): void {
-    this.poisoned ??= error;
+    if (this.poisoned === undefined) {
+      this.poisoned = error;
+    }
   }
 
   private assertUsable(): void {
