@@ -137,7 +137,7 @@ async function processContent(
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const state: SedState = {
-      ...createInitialState(totalLines, filename, rangeStates ?? new Map()),
+      ...createInitialState(totalLines, rangeStates ?? new Map(), filename),
       patternSpace: lines[lineIndex],
       holdSpace: holdSpace,
       lastPattern: lastPattern,

@@ -23,8 +23,8 @@ const DEFAULT_MAX_ITERATIONS = 10000;
 
 export function createInitialState(
   totalLines: number,
-  filename?: string,
   rangeStates: Map<string, import("./types.js").RangeState>,
+  filename?: string,
 ): SedState {
   return {
     patternSpace: "",
