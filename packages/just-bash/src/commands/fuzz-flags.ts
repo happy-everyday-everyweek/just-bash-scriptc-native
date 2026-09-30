@@ -91,14 +91,12 @@ import { flagsForFuzzing as seq } from "./seq/seq.js";
 import { flagsForFuzzing as sleep } from "./sleep/sleep.js";
 import { flagsForFuzzing as sort } from "./sort/sort.js";
 import { flagsForFuzzing as split } from "./split/split.js";
-import { flagsForFuzzing as sqlite3 } from "./sqlite3/sqlite3.js";
 import { flagsForFuzzing as stat } from "./stat/stat.js";
 import { flagsForFuzzing as strings } from "./strings/strings.js";
 // Misc utilities
 import { flagsForFuzzing as tac } from "./tac/tac.js";
 import { flagsForFuzzing as tail } from "./tail/tail.js";
 // Browser-excluded (conditionally loaded at runtime, always importable for types)
-import { flagsForFuzzing as tar } from "./tar/tar.js";
 import { flagsForFuzzing as tee } from "./tee/tee.js";
 import { flagsForFuzzing as time } from "./time/time.js";
 import { flagsForFuzzing as timeout } from "./timeout/timeout.js";
@@ -115,10 +113,8 @@ import { flagsForFuzzing as wc } from "./wc/wc.js";
 // PATH utilities
 import { flagsForFuzzing as which } from "./which/which.js";
 import { flagsForFuzzing as whoami } from "./whoami/whoami.js";
-import { flagsForFuzzing as xan } from "./xan/xan.js";
 // Utilities
 import { flagsForFuzzing as xargs } from "./xargs/xargs.js";
-import { flagsForFuzzing as yq } from "./yq/yq.js";
 
 const allFuzzInfo: CommandFuzzInfo[] = [
   echo,
@@ -200,10 +196,6 @@ const allFuzzInfo: CommandFuzzInfo[] = [
   gzip,
   gunzip,
   zcat,
-  tar,
-  yq,
-  xan,
-  sqlite3,
 ];
 
 /** Get all command fuzz info entries */
