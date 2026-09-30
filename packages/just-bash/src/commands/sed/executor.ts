@@ -52,27 +52,20 @@ export function createInitialState(
 }
 
 function isStepAddress(address: SedAddress): address is StepAddress {
-  return (
-    typeof address === "object" &&
-    (address as unknown as { first: number | undefined }).first !== undefined &&
-    (address as unknown as { step: number | undefined }).step !== undefined
-  );
+  const rec = address as unknown as Record<string, number>;
+  return typeof address === "object" && "first" in rec && "step" in rec;
 }
 
 function isRelativeOffset(
   address: SedAddress,
 ): address is import("./types.js").RelativeOffset {
-  return (
-    typeof address === "object" &&
-    (address as unknown as { offset: number | undefined }).offset !== undefined
-  );
+  const rec = address as unknown as Record<string, number>;
+  return typeof address === "object" && "offset" in rec;
 }
 
 function isPatternAddress(address: SedAddress): address is { pattern: string } {
-  return (
-    typeof address === "object" &&
-    (address as unknown as { pattern: string | undefined }).pattern !== undefined
-  );
+  const rec = address as unknown as Record<string, string>;
+  return typeof address === "object" && "pattern" in rec;
 }
 
 function matchesAddress(
@@ -372,7 +365,7 @@ function globalReplace(
     }
 
     // Match found, but not at current position
-    const { index: mIndex } = match as unknown as { index: number };
+    const mIndex = regex.lastIndex - match[0].length;
     if (mIndex !== pos) {
       // Output characters up to the match
       result += input.slice(pos, mIndex);
