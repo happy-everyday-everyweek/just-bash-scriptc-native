@@ -52,19 +52,19 @@ export function createInitialState(
 }
 
 function isStepAddress(address: SedAddress): address is StepAddress {
-  const rec = address as unknown as Record<string, number>;
+  const rec = address as unknown as Record<string, string | number>;
   return typeof address === "object" && "first" in rec && "step" in rec;
 }
 
 function isRelativeOffset(
   address: SedAddress,
 ): address is import("./types.js").RelativeOffset {
-  const rec = address as unknown as Record<string, number>;
+  const rec = address as unknown as Record<string, string | number>;
   return typeof address === "object" && "offset" in rec;
 }
 
 function isPatternAddress(address: SedAddress): address is { pattern: string } {
-  const rec = address as unknown as Record<string, string>;
+  const rec = address as unknown as Record<string, string | number>;
   return typeof address === "object" && "pattern" in rec;
 }
 
