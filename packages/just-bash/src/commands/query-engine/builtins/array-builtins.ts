@@ -220,7 +220,7 @@ export function evalArrayBuiltin(
       // Helper to add an array of values
       const addValues = (arr: QueryValue[]): QueryValue => {
         // jq filters out null values for add
-        const filtered = arr.filter((x) => x !== null);
+        const filtered: QueryValue[] = arr.filter((x) => x !== null);
         if (filtered.length === 0) return null;
         if (filtered.every((x) => typeof x === "number")) {
           let sum = 0;

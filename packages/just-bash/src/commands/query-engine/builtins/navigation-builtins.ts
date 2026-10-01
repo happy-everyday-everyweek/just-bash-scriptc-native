@@ -65,6 +65,15 @@ function checkedProduct(values: number[], limit: number): number {
  * Handle navigation builtins that need evaluate function for arguments.
  * Returns null if the builtin name is not a navigation builtin handled here.
  */
+function elemRead(x: unknown, i: number): QueryValue {
+  const a = x as QueryValue[];
+  const hits: QueryValue[] = [];
+  for (let j = 0; j < a.length; j++) {
+    if (j === i) hits.push(a[j]);
+  }
+  return hits.length > 0 ? hits[0] : undefined;
+}
+
 export function evalNavigationBuiltin(
   value: QueryValue,
   name: string,
@@ -144,8 +153,9 @@ export function evalNavigationBuiltin(
     case "walk": {
       if (args.length === 0) return [value];
       const limits = resourceLimits(ctx);
-      const scheduled = new WeakSet<object>();
-      const transformed = new WeakMap<object, QueryValue>();
+      const scheduled: object[] = [];
+      const transformedKeys: object[] = [];
+      const transformedVals: QueryValue[] = [];
       const stack: Array<{
         value: QueryValue;
         depth: number;
@@ -173,15 +183,18 @@ export function evalNavigationBuiltin(
             ? (frame.value as object)
             : null;
         if (!frame.expanded && container) {
-          if (scheduled.has(container)) continue;
-          scheduled.add(container);
-          stack.push({ ...frame, expanded: true });
+          if (scheduled.indexOf(container) !== -1) continue;
+          scheduled.push(container);
+          stack.push({ value: frame.value, depth: frame.depth, expanded: true });
           const record = asQueryRecord(frame.value);
-          const children = Array.isArray(frame.value)
-            ? frame.value
-            : Object.keys(record ?? {}).map((key) => {
-                return record?.[key];
-              });
+          const children: QueryValue[] = [];
+          if (Array.isArray(frame.value)) {
+            const fv = frame.value as QueryValue[];
+            for (let i = 0; i < fv.length; i++) children.push(fv[i]);
+          } else if (record) {
+            const ks = Object.keys(record);
+            for (let i = 0; i < ks.length; i++) children.push(record[ks[i]]);
+          }
           if (stack.length > limits.maxResults - children.length) {
             throwTraversalLimit(
               `query traversal queue limit exceeded (${limits.maxResults})`,
@@ -199,29 +212,45 @@ export function evalNavigationBuiltin(
 
         let childResult: QueryValue = frame.value;
         if (Array.isArray(frame.value)) {
-          childResult = frame.value.map((child) =>
-            child !== null && typeof child === "object"
-              ? (transformed.get(child) ?? child)
-              : child,
-          );
+          const fv2 = frame.value as QueryValue[];
+          const mapped2: QueryValue[] = [];
+          for (let i = 0; i < fv2.length; i++) {
+            const child = fv2[i];
+            if (child !== null && typeof child === "object") {
+              const ti = transformedKeys.indexOf(child as object);
+              mapped2.push(ti === -1 ? child : transformedVals[ti]);
+            } else {
+              mapped2.push(child);
+            }
+          }
+          childResult = mapped2;
         } else if (container) {
           const objectResult: Record<string, unknown> = Object.create(null);
           const record = asQueryRecord(frame.value);
-          for (const key of Object.keys(record ?? {})) {
+          const recKeys = record ? Object.keys(record) : [];
+          for (let ri = 0; ri < recKeys.length; ri++) {
+            const key = recKeys[ri];
             if (!isSafeKey(key)) continue;
-            const child = record?.[key];
-            safeSet(
-              objectResult,
-              key,
-              child !== null && typeof child === "object"
-                ? (transformed.get(child) ?? child)
-                : child,
-            );
+            const child = record ? record[key] : undefined;
+            let mappedChild: QueryValue = child;
+            if (child !== null && typeof child === "object") {
+              const ti2 = transformedKeys.indexOf(child as object);
+              mappedChild = ti2 === -1 ? child : transformedVals[ti2];
+            }
+            safeSet(objectResult, key, mappedChild);
           }
           childResult = objectResult;
         }
         const evaluated = evaluate(childResult, args[0], ctx)[0];
-        if (container) transformed.set(container, evaluated);
+        if (container) {
+          const ti3 = transformedKeys.indexOf(container);
+          if (ti3 === -1) {
+            transformedKeys.push(container);
+            transformedVals.push(evaluated);
+          } else {
+            transformedVals[ti3] = evaluated;
+          }
+        }
         if (frame.depth === 0) rootResult = evaluated;
       }
       return [rootResult];
@@ -278,9 +307,13 @@ export function evalNavigationBuiltin(
         const results: QueryValue[][] = [];
         const indexes = new Array<number>(n).fill(0);
         for (let produced = 0; produced < resultCount; produced++) {
-          results.push(indexes.map((index) => value[index]));
+          const combo1: QueryValue[] = [];
+          for (let ci = 0; ci < indexes.length; ci++) {
+            combo1.push(elemRead(value, indexes[ci]));
+          }
+          results.push(combo1);
           for (let position = n - 1; position >= 0; position--) {
-            indexes[position]++;
+            indexes[position] = indexes[position] + 1;
             if (indexes[position] < value.length) break;
             indexes[position] = 0;
           }
@@ -315,9 +348,14 @@ export function evalNavigationBuiltin(
       const results: QueryValue[][] = [];
       const indexes = new Array<number>(arrays.length).fill(0);
       for (let produced = 0; produced < resultCount; produced++) {
-        results.push(indexes.map((index, position) => arrays[position][index]));
+        const combo2: QueryValue[] = [];
+        for (let ci = 0; ci < indexes.length; ci++) {
+          const subArrN = elemRead(arrays, ci) as unknown as QueryValue[];
+          combo2.push(elemRead(subArrN, indexes[ci]));
+        }
+        results.push(combo2);
         for (let position = arrays.length - 1; position >= 0; position--) {
-          indexes[position]++;
+          indexes[position] = indexes[position] + 1;
           if (indexes[position] < arrays[position].length) break;
           indexes[position] = 0;
         }

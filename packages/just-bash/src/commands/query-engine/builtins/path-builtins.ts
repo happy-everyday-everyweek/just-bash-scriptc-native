@@ -11,7 +11,7 @@ import {
   type EvalContext,
 } from "../evaluator.js";
 import type { AstNode } from "../parser.js";
-import { asQueryRecord } from "../safe-object.js";
+import { asQueryRecord, safeHasOwn } from "../safe-object.js";
 import type { QueryValue } from "../value-operations.js";
 
 type EvalFn = (
@@ -144,6 +144,15 @@ function collectContainerPaths(
  * Handle path builtins that need evaluate function for arguments.
  * Returns null if the builtin name is not a path builtin handled here.
  */
+function elemRead(x: unknown, i: number): QueryValue {
+  const a = x as QueryValue[];
+  const hits: QueryValue[] = [];
+  for (let j = 0; j < a.length; j++) {
+    if (j === i) hits.push(a[j]);
+  }
+  return hits.length > 0 ? hits[0] : undefined;
+}
+
 export function evalPathBuiltin(
   value: QueryValue,
   name: string,
@@ -171,15 +180,15 @@ export function evalPathBuiltin(
             break;
           }
           if (Array.isArray(current) && typeof key === "number") {
-            current = current[key];
+            current = elemRead(current, key as number);
           } else if (typeof key === "string") {
             // Defense against prototype pollution: only access own properties
             const obj = asQueryRecord(current);
-            if (!obj || !Object.hasOwn(obj, key)) {
+            if (!obj || !safeHasOwn(obj, key as string)) {
               current = null;
               break;
             }
-            current = obj[key];
+            current = obj[key as string];
           } else {
             current = null;
             break;
@@ -246,15 +255,15 @@ export function evalPathBuiltin(
         for (const key of path) {
           if (current === null || current === undefined) break;
           if (Array.isArray(current) && typeof key === "number") {
-            current = current[key];
+            current = elemRead(current, key as number);
           } else if (typeof key === "string") {
             // Defense against prototype pollution: only access own properties
             const obj = asQueryRecord(current);
-            if (!obj || !Object.hasOwn(obj, key)) {
+            if (!obj || !safeHasOwn(obj, key as string)) {
               current = null;
               break;
             }
-            current = obj[key];
+            current = obj[key as string];
           } else {
             current = null;
             break;
@@ -273,14 +282,14 @@ export function evalPathBuiltin(
           let v: QueryValue = value;
           for (const k of p) {
             if (Array.isArray(v) && typeof k === "number") {
-              v = v[k];
+              v = elemRead(v, k as number);
             } else if (typeof k === "string") {
               // Defense against prototype pollution: only access own properties
               const obj = asQueryRecord(v);
-              if (!obj || !Object.hasOwn(obj, k)) {
+              if (!obj || !safeHasOwn(obj, k as string)) {
                 return false;
               }
-              v = obj[k];
+              v = obj[k as string];
             } else {
               return false;
             }

@@ -308,6 +308,15 @@ function boundedFlatMap(
   return results;
 }
 
+function elemRead(x: unknown, i: number): QueryValue {
+  const a = x as QueryValue[];
+  const hits: QueryValue[] = [];
+  for (let j = 0; j < a.length; j++) {
+    if (j === i) hits.push(a[j]);
+  }
+  return hits.length > 0 ? hits[0] : undefined;
+}
+
 function cloneValueArray(x: unknown): QueryValue[] {
   const src = x as QueryValue[];
   const out: QueryValue[] = [];
@@ -444,8 +453,7 @@ function getValueAtPath(
     if (v && typeof v === "object") {
       if (Array.isArray(v)) {
         if (typeof key === "number") {
-          const avPath = v as unknown as QueryValue[];
-          v = avPath[key];
+          v = elemRead(v, key);
         } else {
           return undefined;
         }

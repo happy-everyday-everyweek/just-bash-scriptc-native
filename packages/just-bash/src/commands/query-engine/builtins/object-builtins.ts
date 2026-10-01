@@ -73,6 +73,29 @@ type EvalFn = (
  * Handle object builtins that need evaluate function for arguments.
  * Returns null if the builtin name is not an object builtin handled here.
  */
+function elemRead(x: unknown, i: number): QueryValue {
+  const a = x as QueryValue[];
+  const hits: QueryValue[] = [];
+  for (let j = 0; j < a.length; j++) {
+    if (j === i) hits.push(a[j]);
+  }
+  return hits.length > 0 ? hits[0] : undefined;
+}
+
+function setElem(x: unknown, i: number, v: QueryValue): void {
+  const a = x as QueryValue[];
+  a[i] = v;
+}
+
+function flattenInto(x: QueryValue, depth: number, out: QueryValue[]): void {
+  if (depth > 0 && Array.isArray(x)) {
+    const a = x as QueryValue[];
+    for (let i = 0; i < a.length; i++) flattenInto(a[i], depth - 1, out);
+  } else {
+    out.push(x);
+  }
+}
+
 export function evalObjectBuiltin(
   value: QueryValue,
   name: string,
@@ -207,7 +230,12 @@ export function evalObjectBuiltin(
     }
 
     case "reverse":
-      if (Array.isArray(value)) return [[...value].reverse()];
+      if (Array.isArray(value)) {
+        const rv = value as QueryValue[];
+        const rev: QueryValue[] = [];
+        for (let i = rv.length - 1; i >= 0; i--) rev.push(rv[i]);
+        return [rev];
+      }
       if (typeof value === "string")
         return [value.split("").reverse().join("")];
       return [null];
@@ -219,13 +247,17 @@ export function evalObjectBuiltin(
           ? evaluate(value, args[0], ctx)
           : [Number.POSITIVE_INFINITY];
       // Handle generator args - each depth produces its own output
-      return depths.map((d) => {
-        const depth = d as number;
+      const flatResults: QueryValue[] = [];
+      for (let di = 0; di < depths.length; di++) {
+        const depth = depths[di] as number;
         if (depth < 0) {
           throw new Error("flatten depth must not be negative");
         }
-        return value.flat(depth);
-      });
+        const one: QueryValue[] = [];
+        flattenInto(value, depth, one);
+        flatResults.push(one);
+      }
+      return flatResults;
     }
 
     case "unique":
@@ -327,7 +359,7 @@ export function evalObjectBuiltin(
         value: QueryValue;
         path: (string | number)[];
       }> = [{ value, path: [] }];
-      const seen = new WeakSet<object>();
+      const seen: object[] = [];
       let iterations = 0;
       while (stack.length > 0) {
         const entry = stack.pop();
@@ -350,13 +382,13 @@ export function evalObjectBuiltin(
           assertResultPush(ctx, results.length);
           results.push([entry.path, v]);
         } else if (Array.isArray(v)) {
-          if (seen.has(v)) {
+          if (seen.indexOf(v as object) !== -1) {
             throw new ExecutionLimitError(
               "cyclic value cannot be converted to a stream",
               "recursion",
             );
           }
-          seen.add(v);
+          seen.push(v as object);
           if (v.length === 0) {
             // Empty array - output [path, []]
             assertResultPush(ctx, results.length);
@@ -373,18 +405,19 @@ export function evalObjectBuiltin(
             }
           }
         } else {
-          if (seen.has(v)) {
+          if (seen.indexOf(v as object) !== -1) {
             throw new ExecutionLimitError(
               "cyclic value cannot be converted to a stream",
               "recursion",
             );
           }
-          seen.add(v);
+          seen.push(v as object);
           const keys = Object.keys(v);
           if (keys.length === 0) {
             // Empty object - output [path, {}]
             assertResultPush(ctx, results.length);
-            results.push([entry.path, Object.create(null)]);
+            const emptyRec: Record<string, QueryValue> = {};
+            results.push([entry.path, emptyRec]);
           } else {
             if (stack.length > maxResultElements(ctx) - keys.length) {
               throw new ExecutionLimitError(
@@ -466,11 +499,11 @@ export function evalObjectBuiltin(
             while (current.length <= key) {
               current.push(null);
             }
-            if (current[key] === null) {
+            if (elemRead(current, key) === null) {
               current[key] =
                 typeof nextKey === "number" ? [] : Object.create(null);
             }
-            current = current[key];
+            current = elemRead(current, key);
           } else {
             const obj = asQueryRecord(current);
             if (obj) {
@@ -503,7 +536,7 @@ export function evalObjectBuiltin(
           while (current.length <= lastKey) {
             current.push(null);
           }
-          current[lastKey] = val;
+          setElem(current, lastKey as number, val);
         } else {
           const lastObj = asQueryRecord(current);
           if (lastObj) {
@@ -548,7 +581,10 @@ export function evalObjectBuiltin(
           const val = item[1];
           if (path.length > depth) {
             // Truncate the path
-            results.push([path.slice(depth), val]);
+            const pairOut: QueryValue[] = [];
+            pairOut.push(path.slice(depth));
+            pairOut.push(val);
+            results.push(pairOut);
           }
           // If path.length <= depth, skip
         }
