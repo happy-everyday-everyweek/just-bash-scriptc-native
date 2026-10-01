@@ -111,6 +111,13 @@ function applySimpleMath(name: string, x: number): number | undefined {
   }
 }
 
+interface UserFuncRecord {
+  params: string[];
+  body: AstNode;
+  closureKeys?: string[];
+  closureVals?: UserFuncRecord[];
+}
+
 class VarStore {
   readonly keys: string[] = [];
   readonly vals: QueryValue[] = [];
@@ -161,10 +168,7 @@ export interface EvalContext {
   root?: QueryValue;
   /** Current path from root for parent navigation */
   currentPath?: (string | number)[];
-  funcs?: Map<
-    string,
-    { params: string[]; body: AstNode; closure?: Map<string, unknown> }
-  >;
+  funcs?: Map<string, UserFuncRecord>;
   labels?: Set<string>;
   /** Feature coverage writer for fuzzing instrumentation */
   coverage?: FeatureCoverageWriter;
@@ -1084,13 +1088,22 @@ function evaluateNode(
       // Register the function in context and evaluate the body
       // Functions are keyed by name/arity to allow overloading (e.g., def f: ...; def f(a): ...)
       // Store closure (current funcs map) for lexical scoping
-      const newFuncs = new Map(ctx.funcs ?? []);
+      const newFuncs = new Map<string, UserFuncRecord>(ctx.funcs ?? []);
       const funcKey = `${ast.name}/${ast.params.length}`;
       // Capture the current funcs map as the closure for this function
+      const snapKeys: string[] = [];
+      const snapVals: UserFuncRecord[] = [];
+      if (ctx.funcs) {
+        for (const [ck, cv] of ctx.funcs) {
+          snapKeys.push(ck);
+          snapVals.push(cv);
+        }
+      }
       newFuncs.set(funcKey, {
         params: ast.params,
         body: ast.funcBody,
-        closure: new Map(ctx.funcs ?? []),
+        closureKeys: snapKeys,
+        closureVals: snapVals,
       });
       const newCtx: EvalContext = { ...ctx, funcs: newFuncs };
       return evaluate(value, ast.body, newCtx);
@@ -2099,9 +2112,7 @@ function evalBuiltin(
     default: {
       // Check for user-defined function by name/arity
       const funcKey = `${name}/${args.length}`;
-      const userFunc = ctx.funcs?.get(funcKey) as
-        | { params: string[]; body: AstNode; closure?: Map<string, unknown> }
-        | undefined;
+      const userFunc = ctx.funcs?.get(funcKey);
       if (userFunc) {
         // User-defined function: bind parameters
         // In jq, parameters are "filters" that can produce multiple values.
@@ -2109,11 +2120,18 @@ function evalBuiltin(
         //
         // Use the function's closure for lexical scoping, not the current context's funcs.
         // This ensures that functions capture the scope at definition time.
-        const baseFuncs = (userFunc.closure ?? ctx.funcs ?? new Map()) as Map<
-          string,
-          { params: string[]; body: AstNode; closure?: Map<string, unknown> }
-        >;
-        const newFuncs = new Map(baseFuncs);
+        const newFuncs = new Map<string, UserFuncRecord>();
+        if (userFunc.closureKeys && userFunc.closureVals) {
+          const cKeys = userFunc.closureKeys;
+          const cVals = userFunc.closureVals;
+          for (let ci = 0; ci < cKeys.length; ci++) {
+            newFuncs.set(cKeys[ci], cVals[ci]);
+          }
+        } else if (ctx.funcs) {
+          for (const [bk, bv] of ctx.funcs) {
+            newFuncs.set(bk, bv);
+          }
+        }
         // Also add the current function itself so recursion works
         newFuncs.set(funcKey, userFunc);
         for (let i = 0; i < userFunc.params.length; i++) {

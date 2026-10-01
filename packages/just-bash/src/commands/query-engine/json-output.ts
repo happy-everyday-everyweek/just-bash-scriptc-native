@@ -111,10 +111,21 @@ function appendJsonString(output: BoundedStringBuilder, value: string): void {
     else if (code === 10) escaped = "\\n";
     else if (code === 12) escaped = "\\f";
     else if (code === 13) escaped = "\\r";
-    else if (code < 32) escaped = `\\u${code.toString(16).padStart(4, "0")}`;
+    else if (code < 32) escaped = `\\u${hex4(code)}`;
     if (!escaped) continue;
     output.append(value.slice(start, index)).append(escaped);
     start = index + 1;
   }
   output.append(value.slice(start)).append('"');
+}
+
+function hex4(code: number): string {
+  let out = "";
+  let value = code;
+  const digits = "0123456789abcdef";
+  for (let i = 0; i < 4; i++) {
+    out = digits.charAt(value % 16) + out;
+    value = (value - (value % 16)) / 16;
+  }
+  return out;
 }
