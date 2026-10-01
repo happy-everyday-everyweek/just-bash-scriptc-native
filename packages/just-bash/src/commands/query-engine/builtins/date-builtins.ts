@@ -25,11 +25,11 @@ function dateFromTimestamp(value: number, operation: string): Date {
   return new Date(value * 1000);
 }
 
-function parseIsoUtc(value: string): Date | null {
+function parseIsoUtc(value: string): Date {
   const match = value.match(
     /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/,
   );
-  if (!match) return null;
+  if (!match) return new Date(Number.NaN);
 
   const [, year, month, day, hour, minute, second] = match.map(Number);
   const milliseconds = Date.UTC(year, month - 1, day, hour, minute, second);

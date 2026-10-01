@@ -58,6 +58,32 @@ function countLiteralSplit(
  * Handle string builtins that need evaluate function for arguments.
  * Returns null if the builtin name is not a string builtin handled here.
  */
+function sbDowncase(src: string): string {
+  let outD = "";
+  for (let ci3 = 0; ci3 < src.length; ci3++) {
+    const ch3 = src.charAt(ci3);
+    if (ch3 >= "A" && ch3 <= "Z") {
+      outD += String.fromCharCode(ch3.charCodeAt(0) + 32);
+    } else {
+      outD += ch3;
+    }
+  }
+  return outD;
+}
+
+function sbUpcase(src: string): string {
+  let outU = "";
+  for (let ci4 = 0; ci4 < src.length; ci4++) {
+    const ch4 = src.charAt(ci4);
+    if (ch4 >= "a" && ch4 <= "z") {
+      outU += String.fromCharCode(ch4.charCodeAt(0) - 32);
+    } else {
+      outU += ch4;
+    }
+  }
+  return outU;
+}
+
 export function evalStringBuiltin(
   value: QueryValue,
   name: string,
@@ -195,23 +221,22 @@ export function evalStringBuiltin(
         const re = createUserRegex(pattern, `${flags}d`);
         const m = re.exec(value);
         if (!m) return [];
-        const indices = (
-          m as RegExpExecArray & { indices?: [number, number][] }
-        ).indices;
+        const caps: QueryValue[] = [];
+        for (let ci2 = 1; ci2 < m.length; ci2++) {
+          const c = m[ci2];
+          caps.push({
+            offset: null,
+            length: c !== undefined ? c.length : 0,
+            string: c !== undefined ? c : "",
+            name: null,
+          });
+        }
         return [
           {
-            offset: m.index,
+            offset: value.indexOf(m[0]),
             length: m[0].length,
             string: m[0],
-            captures: m.slice(1).map((c, i) => {
-              const captureIndices = indices?.[i + 1];
-              return {
-                offset: captureIndices?.[0] ?? null,
-                length: c?.length ?? 0,
-                string: c ?? "",
-                name: null,
-              };
-            }),
+            captures: caps,
           },
         ];
       } catch {
@@ -228,8 +253,9 @@ export function evalStringBuiltin(
           args.length > 1 ? String(evaluate(value, args[1], ctx)[0]) : "";
         const re = createUserRegex(pattern, flags);
         const m = re.match(value);
-        if (!m || !m.groups) return [Object.create(null)];
-        return [m.groups];
+        if (!m) return [Object.create(null)];
+        const emptyGroups: Record<string, string> = {};
+        return [emptyGroups];
       } catch {
         return [null];
       }
@@ -271,9 +297,7 @@ export function evalStringBuiltin(
     case "ascii_downcase":
       if (typeof value === "string") {
         return [
-          value.replace(/[A-Z]/g, (c) =>
-            String.fromCharCode(c.charCodeAt(0) + 32),
-          ),
+          sbDowncase(value),
         ];
       }
       return [null];
@@ -281,9 +305,7 @@ export function evalStringBuiltin(
     case "ascii_upcase":
       if (typeof value === "string") {
         return [
-          value.replace(/[a-z]/g, (c) =>
-            String.fromCharCode(c.charCodeAt(0) - 32),
-          ),
+          sbUpcase(value),
         ];
       }
       return [null];

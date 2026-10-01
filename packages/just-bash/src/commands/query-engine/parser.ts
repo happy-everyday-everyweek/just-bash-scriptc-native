@@ -89,8 +89,12 @@ function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
   let pos = 0;
 
-  const peek = (offset = 0) => input[pos + offset];
-  const advance = () => input[pos++];
+  const peek = (offset = 0) => input.charAt(pos + offset);
+  const advance = () => {
+    const ch = input.charAt(pos);
+    pos = pos + 1;
+    return ch;
+  };
   const isEof = () => pos >= input.length;
   const isDigit = (c: string) => c >= "0" && c <= "9";
   const isAlpha = (c: string) =>
@@ -271,7 +275,7 @@ function tokenize(input: string): Token[] {
       ) {
         if (
           (peek() === "e" || peek() === "E") &&
-          (input[pos + 1] === "+" || input[pos + 1] === "-")
+          (input.charAt(pos + 1) === "+" || input.charAt(pos + 1) === "-")
         ) {
           num += advance();
           num += advance();
