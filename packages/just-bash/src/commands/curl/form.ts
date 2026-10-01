@@ -5,11 +5,65 @@ import { toHexLower } from "../../utils/radix.js";
 
 import type { FormField } from "./types.js";
 
+/** Uppercase hex pair -> lowercase (no `toLowerCase` on escapes). */
+function lowerHexPair(pair: string): string {
+  const lower = "0123456789abcdef";
+  const upper = "0123456789ABCDEF";
+  let out = "";
+  for (let k = 0; k < pair.length; k++) {
+    const idx = upper.indexOf(pair.charAt(k));
+    out += idx >= 0 ? lower.charAt(idx) : pair.charAt(k);
+  }
+  return out;
+}
+
+/**
+ * curl's --data-urlencode flavour of encodeURIComponent.
+ *
+ * Written as one scan: `String.prototype.replace` with a callback has no
+ * static lowering, and the original chained three of them.
+ */
 export function encodeCurlData(value: string): string {
-  return encodeURIComponent(value)
-    .replace(/[!'()*]/g, (char) => `%${toHexLower(char.charCodeAt(0))}`)
-    .replace(/%20/g, "+")
-    .replace(/%[0-9A-F]{2}/g, (percentEscape) => percentEscape.toLowerCase());
+  const encoded = encodeURIComponent(value);
+  let out = "";
+  let i = 0;
+  while (i < encoded.length) {
+    const ch = encoded.charAt(i);
+    if (ch === "!") {
+      out += "%21";
+      i++;
+      continue;
+    }
+    if (ch === "'") {
+      out += "%27";
+      i++;
+      continue;
+    }
+    if (ch === "(") {
+      out += "%28";
+      i++;
+      continue;
+    }
+    if (ch === ")") {
+      out += "%29";
+      i++;
+      continue;
+    }
+    if (ch === "*") {
+      out += "%2a";
+      i++;
+      continue;
+    }
+    if (ch === "%" && i + 2 < encoded.length) {
+      const pair = encoded.slice(i + 1, i + 3);
+      out += pair === "20" ? "+" : "%" + lowerHexPair(pair);
+      i += 3;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
 }
 
 /**

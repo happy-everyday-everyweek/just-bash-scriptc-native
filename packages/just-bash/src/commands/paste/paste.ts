@@ -202,7 +202,9 @@ function joinWithDelimiters(parts: string[], delimiters: string): string {
   for (let i = 1; i < parts.length; i++) {
     // Use delimiter cyclically
     const delimIdx = (i - 1) % delimiters.length;
-    result += (delimiters[delimIdx] ?? "") + (parts[i] ?? "");
+    const delim = delimiters[delimIdx];
+    const part = parts[i];
+    result += (delim ?? "") + (part ?? "");
   }
   return result;
 }

@@ -96,18 +96,22 @@ function safeExpandNumericRange(
 
   if (start <= end) {
     // Ascending range
-    for (
-      let i = start, count = 0;
-      i <= end && count < MAX_SAFE_RANGE_ITERATIONS;
+      let i = start;
+      let count = 0;
+      for (
+        ;
+        i <= end && count < MAX_SAFE_RANGE_ITERATIONS;
       i += absStep, count++
     ) {
       if (!pushRangeValue(results, formatNum(i), limits, aggregateBytes)) break;
     }
   } else {
     // Descending range (start > end)
-    for (
-      let i = start, count = 0;
-      i >= end && count < MAX_SAFE_RANGE_ITERATIONS;
+      let i = start;
+      let count = 0;
+      for (
+        ;
+        i >= end && count < MAX_SAFE_RANGE_ITERATIONS;
       i -= absStep, count++
     ) {
       if (!pushRangeValue(results, formatNum(i), limits, aggregateBytes)) break;
@@ -162,9 +166,11 @@ function safeExpandCharRange(
 
   if (startCode <= endCode) {
     // Ascending range
-    for (
-      let i = startCode, count = 0;
-      i <= endCode && count < MAX_SAFE_RANGE_ITERATIONS;
+      let i = startCode;
+      let count = 0;
+      for (
+        ;
+        i <= endCode && count < MAX_SAFE_RANGE_ITERATIONS;
       i += absStep, count++
     ) {
       if (
@@ -175,9 +181,11 @@ function safeExpandCharRange(
     }
   } else {
     // Descending range
-    for (
-      let i = startCode, count = 0;
-      i >= endCode && count < MAX_SAFE_RANGE_ITERATIONS;
+      let i = startCode;
+      let count = 0;
+      for (
+        ;
+        i >= endCode && count < MAX_SAFE_RANGE_ITERATIONS;
       i -= absStep, count++
     ) {
       if (

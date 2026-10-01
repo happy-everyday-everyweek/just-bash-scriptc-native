@@ -32,21 +32,83 @@ import type { InterpreterContext } from "../types.js";
  * This handles patterns like $var and ${var} but not complex expansions.
  * Used to support namerefs pointing to array elements like A[$key].
  */
+/** True for a shell identifier-shaped name. */
+function isIdentifierName(name: string): boolean {
+  if (name.length === 0) return false;
+  const first = name.charAt(0);
+  const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+  if (letters.indexOf(first) < 0) return false;
+  const digits = "0123456789";
+  for (let i = 1; i < name.length; i++) {
+    const ch = name.charAt(i);
+    if (letters.indexOf(ch) < 0 && digits.indexOf(ch) < 0) return false;
+  }
+  return true;
+}
+
+/** Longest identifier prefix of `s` (empty when it does not start one). */
+function identifierPrefix(s: string): string {
+  const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+  const digits = "0123456789";
+  if (s.length === 0) return "";
+  if (letters.indexOf(s.charAt(0)) < 0) return "";
+  let end = 1;
+  while (end < s.length) {
+    const ch = s.charAt(end);
+    if (letters.indexOf(ch) < 0 && digits.indexOf(ch) < 0) break;
+    end++;
+  }
+  return s.slice(0, end);
+}
+
+/**
+ * Expand `$var` and `${var}` references in a subscript string.
+ *
+ * `String.prototype.replace` with a callback has no static lowering, so
+ * the scan is written by hand.
+ */
+function expandSimpleSubscripts(
+  ctx: InterpreterContext,
+  subscript: string,
+): string {
+  let result = "";
+  let i = 0;
+  while (i < subscript.length) {
+    const ch = subscript.charAt(i);
+    if (ch === "$" && subscript.charAt(i + 1) === "{") {
+      const close = subscript.indexOf("}", i + 2);
+      if (close > 0) {
+        const name = subscript.slice(i + 2, close);
+        if (isIdentifierName(name)) {
+          result += ctx.state.env.get(name) ?? "";
+          i = close + 1;
+          continue;
+        }
+      }
+    } else if (ch === "$") {
+      const name = identifierPrefix(subscript.slice(i + 1));
+      if (name.length > 0) {
+        result += ctx.state.env.get(name) ?? "";
+        i += 1 + name.length;
+        continue;
+      }
+    }
+    result += ch;
+    i++;
+  }
+  return result;
+}
+
+/**
+ * Expand simple variable references in a subscript string.
+ * This handles patterns like $var and ${var} but not complex expansions.
+ * Used to support namerefs pointing to array elements like A[$key].
+ */
 function normalizeAssociativeSubscript(
   ctx: InterpreterContext,
   subscript: string,
 ): string {
-  // Replace ${varname} patterns
-  let result = subscript.replace(
-    /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g,
-    (_, name) => ctx.state.env.get(name) ?? "",
-  );
-  // Replace $varname patterns (must be careful not to match ${})
-  result = result.replace(
-    /\$([a-zA-Z_][a-zA-Z0-9_]*)/g,
-    (_, name) => ctx.state.env.get(name) ?? "",
-  );
-  return result;
+  return expandSimpleSubscripts(ctx, subscript);
 }
 
 /**

@@ -151,7 +151,7 @@ export const commCommand: RuntimeCommand = {
           output += `${lines1[i]}\n`;
         }
         i++;
-      } else if (lines1[i] > lines2[j]) {
+      } else if ((lines1[i] ?? "") > (lines2[j] ?? "")) {
         // Line only in file2
         if (!suppress2) {
           output += `${col2Prefix}${lines2[j]}\n`;

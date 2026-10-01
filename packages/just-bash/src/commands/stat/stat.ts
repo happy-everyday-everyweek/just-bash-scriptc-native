@@ -92,9 +92,7 @@ export const statCommand: RuntimeCommand = {
             ["%g", "1000"],
             ["%G", "group"],
           ]);
-          const output = format.replace(/%[nNsFaAuUgG]/g, (directive) => {
-            return replacements.get(directive) ?? directive;
-          });
+          const output = replaceDirectives(format, replacements);
           appendStdout(`${output}\n`);
         } else {
           // Default format
@@ -127,3 +125,32 @@ export const flagsForFuzzing: CommandFuzzInfo = {
   ],
   needsArgs: true,
 };
+
+
+/**
+ * Substitute `%n`-style directives from a lookup table.
+ *
+ * `String.prototype.replace` with a callback has no static lowering.
+ */
+function replaceDirectives(
+  format: string,
+  replacements: Map<string, string>,
+): string {
+  let out = "";
+  let i = 0;
+  while (i < format.length) {
+    const ch = format.charAt(i);
+    if (ch === "%" && i + 1 < format.length) {
+      const directive = "%" + format.charAt(i + 1);
+      const mapped = replacements.get(directive);
+      if (mapped !== undefined) {
+        out += mapped;
+        i += 2;
+        continue;
+      }
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
