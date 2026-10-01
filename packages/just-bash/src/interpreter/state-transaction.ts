@@ -1,3 +1,4 @@
+import { copyMap, copySet } from "../utils/bytes.js";
 import { cloneArrays } from "./helpers/array.js";
 import type { CompletionSpec, InterpreterState, ShellArray } from "./types.js";
 
@@ -76,7 +77,7 @@ function cloneLocalArrayScopes(
       cells.set(
         name,
         array
-          ? { kind: array.kind, elements: new Map(array.elements) }
+          ? { kind: array.kind, elements: copyMap(array.elements) }
           : undefined,
       );
     }
@@ -168,42 +169,42 @@ export function beginIsolatedShellState(state: InterpreterState): () => void {
     expansionStderr: state.expansionStderr,
   };
 
-  state.env = new Map(state.env);
+  state.env = copyMap(state.env);
   state.arrays = cloneArrays(state.arrays);
   state.options = { ...state.options };
   state.shoptOptions = { ...state.shoptOptions };
-  state.fileDescriptors = new Map(state.fileDescriptors);
+  state.fileDescriptors = copyMap(state.fileDescriptors);
   // Travels with the descriptor table it classifies.
-  state.inputFds = new Set(state.inputFds);
+  state.inputFds = copySet(state.inputFds);
   state.fdAliases = cloneFdAliases(state.fdAliases);
-  state.closedStandardFds = new Set(state.closedStandardFds);
-  state.readonlyVars = new Set(state.readonlyVars);
-  state.associativeArrays = new Set(state.associativeArrays);
-  state.namerefs = new Set(state.namerefs);
-  state.boundNamerefs = new Set(state.boundNamerefs);
-  state.invalidNamerefs = new Set(state.invalidNamerefs);
-  state.integerVars = new Set(state.integerVars);
-  state.lowercaseVars = new Set(state.lowercaseVars);
-  state.uppercaseVars = new Set(state.uppercaseVars);
-  state.exportedVars = new Set(state.exportedVars);
-  state.tempExportedVars = new Set(state.tempExportedVars);
+  state.closedStandardFds = copySet(state.closedStandardFds);
+  state.readonlyVars = copySet(state.readonlyVars);
+  state.associativeArrays = copySet(state.associativeArrays);
+  state.namerefs = copySet(state.namerefs);
+  state.boundNamerefs = copySet(state.boundNamerefs);
+  state.invalidNamerefs = copySet(state.invalidNamerefs);
+  state.integerVars = copySet(state.integerVars);
+  state.lowercaseVars = copySet(state.lowercaseVars);
+  state.uppercaseVars = copySet(state.uppercaseVars);
+  state.exportedVars = copySet(state.exportedVars);
+  state.tempExportedVars = copySet(state.tempExportedVars);
   state.localExportedVars = state.localExportedVars?.map((entry) => ({
-    vars: new Set(entry.vars),
+    vars: copySet(entry.vars),
   }));
-  state.declaredVars = new Set(state.declaredVars);
+  state.declaredVars = copySet(state.declaredVars);
   state.localScopes = state.localScopes.map((scope) => ({
-    cells: new Map(scope.cells),
+    cells: copyMap(scope.cells),
   }));
   state.localArrayScopes = cloneLocalArrayScopes(state.localArrayScopes);
-  state.localVarDepth = new Map(state.localVarDepth);
+  state.localVarDepth = copyMap(state.localVarDepth);
   state.localVarStack = cloneLocalVarStack(state.localVarStack);
-  state.fullyUnsetLocals = new Map(state.fullyUnsetLocals);
+  state.fullyUnsetLocals = copyMap(state.fullyUnsetLocals);
   state.tempEnvBindings = state.tempEnvBindings?.map((bindings) => ({
-    cells: new Map(bindings.cells),
+    cells: copyMap(bindings.cells),
   }));
-  state.mutatedTempEnvVars = new Set(state.mutatedTempEnvVars);
-  state.accessedTempEnvVars = new Set(state.accessedTempEnvVars);
-  state.functions = new Map(state.functions);
+  state.mutatedTempEnvVars = copySet(state.mutatedTempEnvVars);
+  state.accessedTempEnvVars = copySet(state.accessedTempEnvVars);
+  state.functions = copyMap(state.functions);
   state.callLineStack = state.callLineStack
     ? [...state.callLineStack]
     : undefined;
@@ -214,7 +215,7 @@ export function beginIsolatedShellState(state: InterpreterState): () => void {
   state.directoryStack = state.directoryStack
     ? [...state.directoryStack]
     : undefined;
-  state.hashTable = new Map(state.hashTable);
+  state.hashTable = copyMap(state.hashTable);
   state.completionSpecs = cloneCompletionSpecs(state.completionSpecs);
   state.defaultCompletionSpec = cloneCompletionSpec(
     state.defaultCompletionSpec,

@@ -1,3 +1,4 @@
+import { copyMap } from "./utils/bytes.js";
 /**
  * Bash - Bash Shell Environment
  *
@@ -745,7 +746,7 @@ export class Bash {
       // Create environment for this execution
       const execEnv = effectiveOptions.replaceEnv
         ? new Map<string, string>()
-        : new Map(this.state.env);
+        : copyMap(this.state.env);
       // Merge in options.env
       if (effectiveOptions.env) {
         for (const [key, value] of Object.entries(effectiveOptions.env)) {
@@ -1052,7 +1053,7 @@ function scanLineQuoteState(
 ): QuoteScanState {
   let state = start;
   for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+    const ch = line.charAt(i);
     if (state === "single") {
       // Inside single quotes only a closing quote is special (no escapes).
       if (ch === "'") state = "none";
@@ -1068,7 +1069,7 @@ function scanLineQuoteState(
       state = "double";
     } else if (ch === "\\") {
       i++; // backslash escapes the next char (e.g. \" or \')
-    } else if (ch === "#" && (i === 0 || /\s/.test(line[i - 1]))) {
+    } else if (ch === "#" && (i === 0 || /\s/.test(line.charAt(i - 1)))) {
       break; // start of a comment: the rest of the line is not shell-significant
     }
   }

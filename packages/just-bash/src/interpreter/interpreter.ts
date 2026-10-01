@@ -1,3 +1,4 @@
+import { copyMap } from "../utils/bytes.js";
 /**
  * Interpreter - AST Execution Engine
  *
@@ -943,7 +944,7 @@ export class Interpreter {
     // v was set by a prefix assignment like `v=tempenv cmd`
     if (tempAssignments.size > 0) {
       this.ctx.state.tempEnvBindings = this.ctx.state.tempEnvBindings || [];
-      this.ctx.state.tempEnvBindings.push({ cells: new Map(tempAssignments) });
+      this.ctx.state.tempEnvBindings.push({ cells: copyMap(tempAssignments) });
     }
 
     let cmdResult: ExecResult;

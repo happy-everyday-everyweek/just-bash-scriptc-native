@@ -782,7 +782,7 @@ async function prepareRedirectionsWithState(
           standardRoutes.set(effectiveFd, { kind: "closed" });
           if (transaction.policy === "persistent") {
             closeFd(ctx, effectiveFd);
-            ctx.state.closedStandardFds ??= new Set();
+            if (ctx.state.closedStandardFds === undefined) ctx.state.closedStandardFds = new Set();
             ctx.state.closedStandardFds.add(effectiveFd);
           }
         }
@@ -894,7 +894,7 @@ async function prepareRedirectionsWithState(
           standardRoutes.set(parsed.sourceFd, { kind: "closed" });
           if (transaction.policy === "persistent") {
             closeFd(ctx, parsed.sourceFd);
-            ctx.state.closedStandardFds ??= new Set();
+            if (ctx.state.closedStandardFds === undefined) ctx.state.closedStandardFds = new Set();
             ctx.state.closedStandardFds.add(parsed.sourceFd);
           }
         }
@@ -986,7 +986,7 @@ export function createRedirectionTransaction(
         restoreFds(ctx, state.standardSnapshot);
         for (const [fd, wasClosed] of state.standardClosedSnapshot) {
           if (wasClosed) {
-            ctx.state.closedStandardFds ??= new Set();
+            if (ctx.state.closedStandardFds === undefined) ctx.state.closedStandardFds = new Set();
             ctx.state.closedStandardFds.add(fd);
           } else {
             ctx.state.closedStandardFds?.delete(fd);

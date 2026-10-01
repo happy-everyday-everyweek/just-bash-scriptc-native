@@ -806,7 +806,7 @@ export function handleHelp(
     }
     if (arg.startsWith("-") && arg.length > 1) {
       for (let j = 1; j < arg.length; j++) {
-        const flag = arg[j];
+        const flag = arg.charAt(j);
         if (flag === "s") {
           shortForm = true;
         } else {

@@ -131,7 +131,7 @@ export async function setVariable(
       }
       ctx.state.env.delete(name);
     } catch (error) {
-      ctx.state.arrays ??= new Map();
+      if (ctx.state.arrays === undefined) ctx.state.arrays = new Map();
       if (priorArraySnapshot) ctx.state.arrays.set(name, priorArraySnapshot);
       else ctx.state.arrays.delete(name);
       if (priorScalar === undefined) ctx.state.env.delete(name);

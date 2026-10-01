@@ -826,7 +826,7 @@ export async function executeExternalCommand(
 
   // Give extensions one stable, revocable descriptor capability even when
   // this invocation has not created any extra descriptors yet.
-  ctx.state.fileDescriptors ??= new Map();
+  if (ctx.state.fileDescriptors === undefined) ctx.state.fileDescriptors = new Map();
   const cmdCtx: RuntimeCommandContext = {
     fs: ctx.fs,
     fsIdentity: getFileSystemIdentity(ctx.fs),

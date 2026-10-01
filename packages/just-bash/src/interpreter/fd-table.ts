@@ -140,13 +140,13 @@ export function encodeFdEntry(entry: FdEntry): string {
 }
 
 function table(ctx: InterpreterContext): Map<number, string> {
-  ctx.state.fileDescriptors ??= new Map();
+  if (ctx.state.fileDescriptors === undefined) ctx.state.fileDescriptors = new Map();
   return ctx.state.fileDescriptors;
 }
 
 function markContent(ctx: InterpreterContext, fd: number, isInput: boolean) {
   if (isInput) {
-    ctx.state.inputFds ??= new Set();
+    if (ctx.state.inputFds === undefined) ctx.state.inputFds = new Set();
     ctx.state.inputFds.add(fd);
   } else {
     ctx.state.inputFds?.delete(fd);

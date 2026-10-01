@@ -38,7 +38,7 @@ export async function handleLocal(
 
   const currentScope =
     ctx.state.localScopes[ctx.state.localScopes.length - 1].cells;
-  ctx.state.localArrayScopes ??= [];
+  if (ctx.state.localArrayScopes === undefined) ctx.state.localArrayScopes = [];
   while (ctx.state.localArrayScopes.length < ctx.state.localScopes.length) {
     ctx.state.localArrayScopes.push({ cells: new Map() });
   }

@@ -19,7 +19,7 @@ export function isNameref(ctx: InterpreterContext, name: string): boolean {
  * Mark a variable as a nameref
  */
 export function markNameref(ctx: InterpreterContext, name: string): void {
-  ctx.state.namerefs ??= new Set();
+  if (ctx.state.namerefs === undefined) ctx.state.namerefs = new Set();
   ctx.state.namerefs.add(name);
 }
 
@@ -40,7 +40,7 @@ export function markNamerefInvalid(
   ctx: InterpreterContext,
   name: string,
 ): void {
-  ctx.state.invalidNamerefs ??= new Set();
+  if (ctx.state.invalidNamerefs === undefined) ctx.state.invalidNamerefs = new Set();
   ctx.state.invalidNamerefs.add(name);
 }
 
@@ -56,7 +56,7 @@ function isNamerefInvalid(ctx: InterpreterContext, name: string): boolean {
  * This is kept for tracking purposes but is currently not used in resolution.
  */
 export function markNamerefBound(ctx: InterpreterContext, name: string): void {
-  ctx.state.boundNamerefs ??= new Set();
+  if (ctx.state.boundNamerefs === undefined) ctx.state.boundNamerefs = new Set();
   ctx.state.boundNamerefs.add(name);
 }
 

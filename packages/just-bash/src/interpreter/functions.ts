@@ -82,7 +82,7 @@ export async function callFunction(
   ctx.state.sourceStack.unshift(func.sourceFile ?? "main");
 
   ctx.state.localScopes.push({ cells: new Map() });
-  ctx.state.localArrayScopes ??= [];
+  if (ctx.state.localArrayScopes === undefined) ctx.state.localArrayScopes = [];
   ctx.state.localArrayScopes.push({ cells: new Map() });
 
   // Push a new set for tracking exports made in this scope
@@ -124,14 +124,14 @@ export async function callFunction(
       }
     }
     if (localArrayScope) {
-      ctx.state.arrays ??= new Map();
+      if (ctx.state.arrays === undefined) ctx.state.arrays = new Map();
       for (const [name, original] of localArrayScope.cells) {
         if (original === undefined) {
           ctx.state.arrays.delete(name);
           ctx.state.associativeArrays?.delete(name);
         } else {
           ctx.state.arrays.set(name, cloneArray(original));
-          ctx.state.associativeArrays ??= new Set();
+          if (ctx.state.associativeArrays === undefined) ctx.state.associativeArrays = new Set();
           if (original.kind === "associative") {
             ctx.state.associativeArrays.add(name);
           } else {

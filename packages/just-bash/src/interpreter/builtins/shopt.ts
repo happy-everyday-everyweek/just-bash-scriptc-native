@@ -129,7 +129,7 @@ export function handleShopt(
     }
     if (arg.startsWith("-") && arg.length > 1) {
       for (let j = 1; j < arg.length; j++) {
-        const flag = arg[j];
+        const flag = arg.charAt(j);
         switch (flag) {
           case "s":
             setFlag = true;

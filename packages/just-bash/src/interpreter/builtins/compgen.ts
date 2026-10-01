@@ -1147,7 +1147,7 @@ function restoreCompletionArray(
   name: string,
   saved: ReturnType<typeof getArray>,
 ): void {
-  ctx.state.arrays ??= new Map();
+  if (ctx.state.arrays === undefined) ctx.state.arrays = new Map();
   if (saved) ctx.state.arrays.set(name, cloneArray(saved));
   else ctx.state.arrays.delete(name);
 }

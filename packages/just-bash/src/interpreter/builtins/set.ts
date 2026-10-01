@@ -416,7 +416,7 @@ export function handleSet(ctx: InterpreterContext, args: string[]): ExecResult {
       // Number of following words already consumed as -o/+o option names.
       let consumedArgs = 0;
       for (let j = 1; j < arg.length; j++) {
-        const flag = arg[j];
+        const flag = arg.charAt(j);
 
         // `o` takes its option name from the next word, not from the
         // remaining characters of the current token.

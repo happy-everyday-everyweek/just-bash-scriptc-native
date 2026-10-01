@@ -44,3 +44,28 @@ export function charsOf(s: string): string[] {
   for (let i = 0; i < s.length; i++) out.push(s.charAt(i));
   return out;
 }
+
+/** Copy a `Set<T>` (the copy constructor has no lowering). */
+export function copySet<T>(src: Set<T>): Set<T> {
+  const out = new Set<T>();
+  src.forEach((value) => {
+    out.add(value);
+  });
+  return out;
+}
+
+/** Copy a `Map<K, V>` (the copy constructor has no lowering). */
+export function copyMap<K, V>(src: Map<K, V>): Map<K, V> {
+  const out = new Map<K, V>();
+  src.forEach((value, key) => {
+    out.set(key, value);
+  });
+  return out;
+}
+
+/** Build a set from an array of values. */
+export function setFromArray<T>(values: T[]): Set<T> {
+  const out = new Set<T>();
+  for (const v of values) out.add(v);
+  return out;
+}

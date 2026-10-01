@@ -14,7 +14,7 @@ import type { InterpreterContext } from "../types.js";
  * Get the directory stack, initializing if needed
  */
 function getStack(ctx: InterpreterContext): string[] {
-  ctx.state.directoryStack ??= [];
+  if (ctx.state.directoryStack === undefined) ctx.state.directoryStack = [];
   return ctx.state.directoryStack;
 }
 

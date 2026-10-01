@@ -247,7 +247,7 @@ async function processArrayAssignment(
   const savedArraySnapshot = savedArray ? cloneArray(savedArray) : undefined;
   const savedScalar = ctx.state.env.get(name);
   const restoreTarget = (): void => {
-    ctx.state.arrays ??= new Map();
+    if (ctx.state.arrays === undefined) ctx.state.arrays = new Map();
     if (savedArraySnapshot) ctx.state.arrays.set(name, savedArraySnapshot);
     else ctx.state.arrays.delete(name);
     if (savedScalar === undefined) ctx.state.env.delete(name);

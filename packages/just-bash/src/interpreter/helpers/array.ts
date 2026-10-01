@@ -34,7 +34,7 @@ export function ensureArray(
   arrayName: string,
   kind: "indexed" | "associative" = "indexed",
 ): ShellArray {
-  ctx.state.arrays ??= new Map();
+  if (ctx.state.arrays === undefined) ctx.state.arrays = new Map();
   let array = ctx.state.arrays.get(arrayName);
   if (!array) {
     array = { kind, elements: new Map() };

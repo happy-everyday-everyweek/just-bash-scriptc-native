@@ -34,7 +34,7 @@ export function applyTildeExpansion(
   // ~username case: find where the username ends
   // Username chars are alphanumeric, underscore, and hyphen
   let i = 1;
-  while (i < value.length && /[a-zA-Z0-9_-]/.test(value[i])) {
+  while (i < value.length && /[a-zA-Z0-9_-]/.test(value.charAt(i))) {
     i++;
   }
   const username = value.slice(1, i);

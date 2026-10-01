@@ -101,7 +101,7 @@ export function handleGetopts(
   // Get the option character to process
   // charIndex 0 means we're starting a new argument, so skip the leading '-'
   const startIndex = charIndex === 0 ? 1 : charIndex;
-  const optChar = currentArg[startIndex];
+  const optChar = currentArg.charAt(startIndex);
 
   if (!optChar) {
     // No more characters in this argument, move to next

@@ -70,7 +70,7 @@ import {
  * Mark a variable as having the integer attribute.
  */
 function markInteger(ctx: InterpreterContext, name: string): void {
-  ctx.state.integerVars ??= new Set();
+  if (ctx.state.integerVars === undefined) ctx.state.integerVars = new Set();
   ctx.state.integerVars.add(name);
 }
 
@@ -85,7 +85,7 @@ export function isInteger(ctx: InterpreterContext, name: string): boolean {
  * Mark a variable as having the lowercase attribute.
  */
 function markLowercase(ctx: InterpreterContext, name: string): void {
-  ctx.state.lowercaseVars ??= new Set();
+  if (ctx.state.lowercaseVars === undefined) ctx.state.lowercaseVars = new Set();
   ctx.state.lowercaseVars.add(name);
   // -l and -u are mutually exclusive; -l clears -u
   ctx.state.uppercaseVars?.delete(name);
@@ -102,7 +102,7 @@ function isLowercase(ctx: InterpreterContext, name: string): boolean {
  * Mark a variable as having the uppercase attribute.
  */
 function markUppercase(ctx: InterpreterContext, name: string): void {
-  ctx.state.uppercaseVars ??= new Set();
+  if (ctx.state.uppercaseVars === undefined) ctx.state.uppercaseVars = new Set();
   ctx.state.uppercaseVars.add(name);
   // -l and -u are mutually exclusive; -u clears -l
   ctx.state.lowercaseVars?.delete(name);
@@ -325,7 +325,7 @@ export async function handleDeclare(
     if (!currentScope.has(name)) {
       currentScope.set(name, ctx.state.env.get(name));
     }
-    ctx.state.localArrayScopes ??= [];
+    if (ctx.state.localArrayScopes === undefined) ctx.state.localArrayScopes = [];
     while (ctx.state.localArrayScopes.length < ctx.state.localScopes.length) {
       ctx.state.localArrayScopes.push({ cells: new Map() });
     }
@@ -485,7 +485,7 @@ export async function handleDeclare(
 
       // Track associative array declaration
       if (declareAssoc) {
-        ctx.state.associativeArrays ??= new Set();
+        if (ctx.state.associativeArrays === undefined) ctx.state.associativeArrays = new Set();
         ctx.state.associativeArrays.add(name);
         setArrayKind(ctx, name, "associative");
       } else {
@@ -976,7 +976,7 @@ export async function handleDeclare(
           exitCode = 1;
           continue;
         }
-        ctx.state.associativeArrays ??= new Set();
+        if (ctx.state.associativeArrays === undefined) ctx.state.associativeArrays = new Set();
         ctx.state.associativeArrays.add(name);
         setArrayKind(ctx, name, "associative");
       }
@@ -990,7 +990,7 @@ export async function handleDeclare(
         } else {
           // Mark variable as declared but don't set a value
           // This distinguishes "declare x" (unset) from "declare x=" (empty string)
-          ctx.state.declaredVars ??= new Set();
+          if (ctx.state.declaredVars === undefined) ctx.state.declaredVars = new Set();
           ctx.state.declaredVars.add(name);
         }
       }

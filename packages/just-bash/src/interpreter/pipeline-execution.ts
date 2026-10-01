@@ -1,3 +1,4 @@
+import { copyMap } from "../utils/bytes.js";
 /**
  * Pipeline Execution
  *
@@ -87,7 +88,7 @@ export async function executePipeline(
 
     // Save environment for commands running in subshell context
     // This prevents variable assignments (e.g., ${cmd=echo}) from leaking to parent
-    const savedEnv = runsInSubshell ? new Map(ctx.state.env) : null;
+    const savedEnv = runsInSubshell ? copyMap(ctx.state.env) : null;
     const savedArrays = runsInSubshell ? cloneArrays(ctx.state.arrays) : null;
 
     let result: ExecResult;

@@ -1,3 +1,4 @@
+import { copyMap } from "../../utils/bytes.js";
 /**
  * Pattern Expansion
  *
@@ -119,7 +120,7 @@ async function executeCommandSubstitutionFromString(
   // Execute in subshell-like context
   const savedBashPid = ctx.state.bashPid;
   ctx.state.bashPid = ctx.state.nextVirtualPid++;
-  const savedEnv = new Map(ctx.state.env);
+  const savedEnv = copyMap(ctx.state.env);
   const savedArrays = cloneArrays(ctx.state.arrays);
   const savedCwd = ctx.state.cwd;
   const savedSuppressVerbose = ctx.state.suppressVerbose;

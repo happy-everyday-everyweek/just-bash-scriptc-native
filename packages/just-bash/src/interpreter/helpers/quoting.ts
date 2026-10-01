@@ -30,7 +30,7 @@ function needsDollarQuoting(value: string): boolean {
 function dollarQuote(value: string): string {
   let result = "$'";
   for (let i = 0; i < value.length; i++) {
-    const char = value[i];
+    const char = value.charAt(i);
     const code = value.charCodeAt(i);
 
     if (code === 0x07) {

@@ -534,11 +534,11 @@ function assertExtglobDepth(pattern: string, maximum: number): void {
   let depth = 0;
   const groups: boolean[] = [];
   for (let i = 0; i < pattern.length; i++) {
-    if (pattern[i] === "\\") {
+    if (pattern.charAt(i) === "\\") {
       i++;
       continue;
     }
-    if (pattern[i] === "(") {
+    if (pattern.charAt(i) === "(") {
       const isExtglob = i > 0 && "@*+?!".includes(pattern[i - 1]);
       groups.push(isExtglob);
       if (isExtglob) depth++;
@@ -561,7 +561,7 @@ function assertExtglobDepth(pattern: string, maximum: number): void {
 function patternToRegexStr(pattern: string, extglob: boolean): string {
   let regex = "";
   for (let i = 0; i < pattern.length; i++) {
-    const char = pattern[i];
+    const char = pattern.charAt(i);
 
     // Check for extglob patterns: @(...), *(...), +(...), ?(...), !(...)
     if (
@@ -572,7 +572,7 @@ function patternToRegexStr(pattern: string, extglob: boolean): string {
         char === "?" ||
         char === "!") &&
       i + 1 < pattern.length &&
-      pattern[i + 1] === "("
+      pattern.charAt(i + 1) === "("
     ) {
       // Find the matching closing paren (handle nesting)
       const closeIdx = findMatchingParen(pattern, i + 1);
@@ -643,7 +643,7 @@ function patternToRegexStr(pattern: string, extglob: boolean): string {
     // Handle backslash escapes - next char is literal
     if (char === "\\") {
       if (i + 1 < pattern.length) {
-        const next = pattern[i + 1];
+        const next = pattern.charAt(i + 1);
         // Escape regex special chars
         if (/[\\^$.|+(){}[\]*?]/.test(next)) {
           regex += `\\${next}`;

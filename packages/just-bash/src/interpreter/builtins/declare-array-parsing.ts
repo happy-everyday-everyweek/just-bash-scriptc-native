@@ -117,13 +117,13 @@ export function parseAssocArrayLiteral(
 
   while (pos < content.length) {
     // Skip whitespace
-    while (pos < content.length && /\s/.test(content[pos])) {
+    while (pos < content.length && /\s/.test(content.charAt(pos))) {
       pos++;
     }
     if (pos >= content.length) break;
 
     // Expect [
-    if (content[pos] !== "[") {
+    if (content.charAt(pos) !== "[") {
       // Skip non-bracket content
       pos++;
       continue;
@@ -132,7 +132,7 @@ export function parseAssocArrayLiteral(
 
     // Parse key (may be quoted)
     let key = "";
-    if (content[pos] === "'" || content[pos] === '"') {
+    if (content.charAt(pos) === "'" || content[pos] === '"') {
       const quote = content[pos];
       pos++;
       while (pos < content.length && content[pos] !== quote) {
@@ -152,18 +152,18 @@ export function parseAssocArrayLiteral(
     }
 
     // Skip to ]
-    while (pos < content.length && content[pos] !== "]") {
+    while (pos < content.length && content.charAt(pos) !== "]") {
       pos++;
     }
-    if (content[pos] === "]") pos++;
+    if (content.charAt(pos) === "]") pos++;
 
     // Expect =
-    if (content[pos] !== "=") continue;
+    if (content.charAt(pos) !== "=") continue;
     pos++;
 
     // Parse value (may be quoted)
     let value = "";
-    if (content[pos] === "'" || content[pos] === '"') {
+    if (content.charAt(pos) === "'" || content[pos] === '"') {
       const quote = content[pos];
       pos++;
       while (pos < content.length && content[pos] !== quote) {

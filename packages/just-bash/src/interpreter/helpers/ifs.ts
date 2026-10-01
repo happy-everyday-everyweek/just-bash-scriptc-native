@@ -332,7 +332,7 @@ export function splitByIfsForExpansionEx(
 
   // Skip leading IFS whitespace
   const leadingStart = pos;
-  while (pos < value.length && whitespace.has(value[pos])) {
+  while (pos < value.length && whitespace.has(value.charAt(pos))) {
     pos++;
   }
   // Track if we consumed any leading whitespace
@@ -347,7 +347,7 @@ export function splitByIfsForExpansionEx(
   }
 
   // Check for leading non-whitespace delimiter (creates empty field)
-  if (nonWhitespace.has(value[pos])) {
+  if (nonWhitespace.has(value.charAt(pos))) {
     assertIfsPushAllowed(words.length, maxArrayElements);
     words.push("");
     pos++;
@@ -363,7 +363,7 @@ export function splitByIfsForExpansionEx(
 
     // Collect characters until we hit an IFS character
     while (pos < value.length) {
-      const ch = value[pos];
+      const ch = value.charAt(pos);
       if (whitespace.has(ch) || nonWhitespace.has(ch)) {
         break;
       }
@@ -382,12 +382,12 @@ export function splitByIfsForExpansionEx(
     // Now handle the delimiter(s)
     // Skip IFS whitespace
     const beforeDelimiterPos = pos;
-    while (pos < value.length && whitespace.has(value[pos])) {
+    while (pos < value.length && whitespace.has(value.charAt(pos))) {
       pos++;
     }
 
     // Check for non-whitespace delimiter
-    if (pos < value.length && nonWhitespace.has(value[pos])) {
+    if (pos < value.length && nonWhitespace.has(value.charAt(pos))) {
       pos++;
 
       // Skip whitespace after non-whitespace delimiter
