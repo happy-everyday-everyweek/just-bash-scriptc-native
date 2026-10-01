@@ -29,6 +29,7 @@ import {
 import { formatJsonValue } from "../query-engine/json-output.js";
 import { sanitizeParsedData } from "../query-engine/safe-object.js";
 import { getValueDepth } from "../query-engine/value-operations.js";
+import { mapToRecord } from "../../helpers/env.js";
 
 function escapeControlChar(char: string): string {
   switch (char) {
@@ -43,7 +44,7 @@ function escapeControlChar(char: string): string {
     case "\t":
       return "\\t";
     default:
-      return `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`;
+      return `\\u${hex4(char.charCodeAt(0))}`;
   }
 }
 
@@ -270,7 +271,17 @@ export const jqCommand: RuntimeCommand = {
     let filterSet = false;
     let positionalMode: "none" | "args" | "jsonargs" = "none";
     const files: string[] = [];
-    const namedArgs = new Map<string, QueryValue>();
+    const namedArgNames: string[] = [];
+    const namedArgValues: QueryValue[] = [];
+    const namedArgsSet = (k: string, v: QueryValue): void => {
+      const i = namedArgNames.indexOf(k);
+      if (i === -1) {
+        namedArgNames.push(k);
+        namedArgValues.push(v);
+      } else {
+        namedArgValues[i] = v;
+      }
+    };
     const positionalArgs: QueryValue[] = [];
     const fileBindings: {
       name: string;
@@ -307,7 +318,7 @@ export const jqCommand: RuntimeCommand = {
             "--arg takes two parameters (e.g. --arg varname value)",
           );
         }
-        namedArgs.set(name, value);
+        namedArgsSet(name, value);
         i += 2;
       } else if (a === "--argjson") {
         const name = args[i + 1];
@@ -326,7 +337,7 @@ export const jqCommand: RuntimeCommand = {
         if (parsed.length !== 1) {
           return jqArgError("invalid JSON text passed to --argjson");
         }
-        namedArgs.set(name, parsed[0]);
+        namedArgsSet(name, parsed[0]);
         i += 2;
       } else if (a === "--rawfile") {
         const name = args[i + 1];
@@ -416,14 +427,11 @@ export const jqCommand: RuntimeCommand = {
         const { name, mode } = fileBindings[b];
         const text = decodeBytesToUtf8(result.files[b].content);
         if (mode === "raw") {
-          namedArgs.set(name, text);
+          namedArgsSet(name, text);
         } else {
           const trimmed = text.trim();
           try {
-            namedArgs.set(
-              name,
-              trimmed ? parseJsonStream(trimmed, jsonLimits) : [],
-            );
+            namedArgsSet(name, trimmed ? parseJsonStream(trimmed, jsonLimits) : []);
           } catch {
             return jqArgError("invalid JSON text passed to --slurpfile");
           }
@@ -478,8 +486,9 @@ export const jqCommand: RuntimeCommand = {
               maxDepth: ctx.limits.maxQueryDepth,
             }
           : undefined,
-        env: ctx.env,
-        namedArgs,
+        env: mapToRecord(ctx.env),
+        namedArgNames: namedArgNames,
+        namedArgValues: namedArgValues,
         positionalArgs,
         coverage: ctx.coverage,
         requireDefenseContext: ctx.requireDefenseContext,
@@ -662,3 +671,13 @@ export const flagsForFuzzing: CommandFuzzInfo = {
   stdinType: "json",
   needsArgs: true,
 };
+function hex4(code: number): string {
+  let out = "";
+  let value = code;
+  const digits = "0123456789abcdef";
+  for (let i = 0; i < 4; i++) {
+    out = digits.charAt(value % 16) + out;
+    value = (value - (value % 16)) / 16;
+  }
+  return out;
+}

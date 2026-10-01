@@ -121,9 +121,10 @@ export type ResolvedQueryExecutionLimits = Required<QueryExecutionLimits>;
 export interface EvalContext {
   vars: Map<string, QueryValue>;
   limits: ResolvedQueryExecutionLimits;
-  env?: Map<string, string>;
+  env?: Record<string, string>;
   /** Named arguments (bare names) exposed via $ARGS.named */
-  namedArgs?: Map<string, QueryValue>;
+  namedArgNames?: string[];
+  namedArgValues?: QueryValue[];
   /** Positional arguments (in order) exposed via $ARGS.positional */
   positionalArgs?: QueryValue[];
   requireDefenseContext?: boolean;
@@ -214,10 +215,12 @@ function boundedFlatMap(
 
 function createContext(options?: EvaluateOptions): EvalContext {
   const vars = new Map<string, QueryValue>();
-  if (options?.namedArgs) {
+  if (options?.namedArgNames && options.namedArgValues) {
     // Seed $NAME variables; jq stores variable references with the $ prefix.
-    for (const [name, value] of options.namedArgs) {
-      vars.set(`$${name}`, value);
+    const seedNames = options.namedArgNames;
+    const seedValues = options.namedArgValues;
+    for (let i = 0; i < seedNames.length; i++) {
+      vars.set(`$${seedNames[i]}`, seedValues[i]);
     }
   }
   return {
@@ -233,7 +236,8 @@ function createContext(options?: EvaluateOptions): EvalContext {
       maxArrayElements: options?.limits?.maxArrayElements ?? 100_000,
     },
     env: options?.env,
-    namedArgs: options?.namedArgs,
+    namedArgNames: options?.namedArgNames,
+    namedArgValues: options?.namedArgValues,
     positionalArgs: options?.positionalArgs,
     coverage: options?.coverage,
     requireDefenseContext: options?.requireDefenseContext,
@@ -253,7 +257,8 @@ function withVar(
     vars: newVars,
     limits: ctx.limits,
     env: ctx.env,
-    namedArgs: ctx.namedArgs,
+    namedArgNames: ctx.namedArgNames,
+    namedArgValues: ctx.namedArgValues,
     positionalArgs: ctx.positionalArgs,
     requireDefenseContext: ctx.requireDefenseContext,
     defenseContextChecked: ctx.defenseContextChecked,
@@ -457,9 +462,10 @@ function applyPathTransform(
 
 export interface EvaluateOptions {
   limits?: QueryExecutionLimits;
-  env?: Map<string, string>;
+  env?: Record<string, string>;
   /** Named arguments (bare names) bound to $NAME and exposed via $ARGS.named */
-  namedArgs?: Map<string, QueryValue>;
+  namedArgNames?: string[];
+  namedArgValues?: QueryValue[];
   /** Positional arguments (in order) exposed via $ARGS.positional */
   positionalArgs?: QueryValue[];
   coverage?: FeatureCoverageWriter;
@@ -857,7 +863,7 @@ function evaluateNode(
       // Note: ast.name includes the $ prefix (e.g., "$ENV")
       if (ast.name === "$ENV") {
         // Convert Map to object for jq's internal representation (null-prototype prevents prototype pollution)
-        return [ctx.env ? mapToRecord(ctx.env) : Object.create(null)];
+        return [ctx.env ? ctx.env : Object.create(null)];
       }
       // $ARGS exposes named/positional external arguments. jq orders the keys
       // as { positional, named }.
@@ -866,8 +872,12 @@ function evaluateNode(
         // in insertion order, including prototype-sensitive names like
         // "__proto__". The null-prototype object makes this safe (no pollution).
         const named: Record<string, QueryValue> = Object.create(null);
-        if (ctx.namedArgs) {
-          for (const [name, value] of ctx.namedArgs) {
+        if (ctx.namedArgNames && ctx.namedArgValues) {
+          const namedNames = ctx.namedArgNames;
+          const namedValues = ctx.namedArgValues;
+          for (let i = 0; i < namedNames.length; i++) {
+            const name = namedNames[i];
+            const value = namedValues[i];
             // defineProperty (vs `named[name] = value`) stores a "__proto__" key
             // as a plain own data property instead of hitting the accessor.
             // @banned-pattern-ignore: null-prototype target; keys are inert data.
@@ -2038,7 +2048,7 @@ function evalBuiltin(
 
     case "env":
       // Convert Map to object for jq's internal representation (null-prototype prevents prototype pollution)
-      return [ctx.env ? mapToRecord(ctx.env) : Object.create(null)];
+      return [ctx.env ? ctx.env : Object.create(null)];
 
     // recurse, recurse_down, walk, transpose, combinations, parent, parents, root
     // handled by evalNavigationBuiltin
