@@ -20,7 +20,7 @@ export function assertDefenseContext(
     type: "missing_defense_context",
     message,
     path: "DefenseInDepthBox.context",
-    stack: new Error().stack,
+    stack: "",
     executionId: DefenseInDepthBox.getCurrentExecutionId(),
   });
 }

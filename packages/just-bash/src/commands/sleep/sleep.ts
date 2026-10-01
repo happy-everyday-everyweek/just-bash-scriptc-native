@@ -69,25 +69,29 @@ export const sleepCommand: RuntimeCommand = {
 
     // Use mock sleep if available in context, otherwise real setTimeout
     if (ctx.sleep) {
-      const sleepPromise = Promise.resolve(ctx.sleep(totalMs));
+      const sleepFn = ctx.sleep as unknown as (ms: number) => Promise<void>;
+      const sleepPromise = Promise.resolve(sleepFn(totalMs));
       if (ctx.signal) {
+        const sigA = ctx.signal as unknown as {
+          aborted: boolean;
+          addEventListener: (
+            t: string,
+            h: () => void,
+            o: { once: boolean },
+          ) => void;
+          removeEventListener: (t: string, h: () => void) => void;
+        };
         let onAbort: (() => void) | undefined;
         const abortPromise = new Promise<void>((resolve) => {
           onAbort = resolve;
-          ctx.signal?.addEventListener("abort", onAbort, { once: true });
-          // The host hook is invoked before this listener is installed and may
-          // synchronously abort the execution.
-          if (ctx.signal?.aborted) resolve();
+          sigA.addEventListener("abort", onAbort, { once: true });
+          if (sigA.aborted) resolve();
         });
         try {
-          // A host-provided sleep hook may not know about cancellation. Stop
-          // awaiting it when execution is aborted so timeout can fully unwind
-          // the child pipeline before its parent execution scope closes. The
-          // race keeps a rejection handler attached to the abandoned promise.
           await Promise.race([sleepPromise, abortPromise]);
         } finally {
           if (onAbort) {
-            ctx.signal.removeEventListener("abort", onAbort);
+            sigA.removeEventListener("abort", onAbort);
           }
         }
       } else {
@@ -97,15 +101,29 @@ export const sleepCommand: RuntimeCommand = {
       // Abort-aware sleep: resolve early if the signal fires.
       // Named handler so we can remove it when the timer resolves normally.
       await new Promise<void>((resolve) => {
-        const onAbort = () => {
-          _clearTimeout(timer);
-          resolve();
+        const sigB = ctx.signal as unknown as {
+          aborted: boolean;
+          addEventListener: (
+            t: string,
+            h: () => void,
+            o: { once: boolean },
+          ) => void;
+          removeEventListener: (t: string, h: () => void) => void;
         };
-        const timer = _setTimeout(() => {
-          ctx.signal?.removeEventListener("abort", onAbort);
+        const setT = _setTimeout as unknown as (
+          fn: () => void,
+          ms: number,
+        ) => number;
+        const clearT = _clearTimeout as unknown as (h: number) => void;
+        const timer = setT(() => {
+          sigB.removeEventListener("abort", onAbort);
           resolve();
         }, totalMs);
-        ctx.signal?.addEventListener("abort", onAbort, { once: true });
+        const onAbort = () => {
+          clearT(timer);
+          resolve();
+        };
+        sigB.addEventListener("abort", onAbort, { once: true });
       });
     } else {
       await new Promise((resolve) => _setTimeout(() => resolve(undefined), totalMs));

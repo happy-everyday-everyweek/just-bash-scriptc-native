@@ -691,7 +691,11 @@ export const grepCommand: RuntimeCommand = {
 
               if (isDirectory) {
                 if (!recursive) {
-                  return { error: `grep: ${file}: Is a directory\n` };
+                  return {
+                    error: `grep: ${file}: Is a directory\n`,
+                    file: undefined,
+                    result: undefined,
+                  };
                 }
                 return null;
               }
@@ -715,11 +719,13 @@ export const grepCommand: RuntimeCommand = {
                       matched: false,
                       matchCount: 0,
                     },
+                    error: undefined,
                   };
                 }
                 return {
                   file,
                   result: { output: "", matched: false, matchCount: 0 },
+                  error: undefined,
                 };
               }
             }
@@ -740,10 +746,14 @@ export const grepCommand: RuntimeCommand = {
               signal: ctx.signal,
             });
 
-            return { file, result };
+            return { file, result, error: undefined };
           } catch (error) {
             rethrowFatalExecutionError(error);
-            return { error: `grep: ${file}: No such file or directory\n` };
+            return {
+              error: `grep: ${file}: No such file or directory\n`,
+              file: undefined,
+              result: undefined,
+            };
           }
         }),
       );
@@ -753,9 +763,9 @@ export const grepCommand: RuntimeCommand = {
         if (res === null) continue;
 
         const resView = res as unknown as {
-          error?: string | null;
-          file?: string | null;
-          result?: { matched: boolean; output: string } | null;
+          error: string | undefined;
+          file: string | undefined;
+          result: { matched: boolean; output: string; matchCount: number } | undefined;
         };
         const resError = resView.error;
         if (resError !== null && resError !== undefined && resError.length > 0) {
