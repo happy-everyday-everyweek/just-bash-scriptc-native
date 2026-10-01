@@ -7,6 +7,7 @@
 import type { EvalContext } from "../evaluator.js";
 import type { AstNode } from "../parser.js";
 import type { QueryValue } from "../value-operations.js";
+import { ExecutionLimitError } from "../../../interpreter/errors.js";
 
 type EvalFn = (
   value: QueryValue,
@@ -21,11 +22,6 @@ type EvalWithPartialFn = (
 ) => QueryValue[];
 
 type IsTruthyFn = (v: QueryValue) => boolean;
-type ExecutionLimitErrorClass = new (
-  message: string,
-  kind: "recursion" | "commands" | "iterations" | "array_elements",
-) => Error;
-
 /**
  * Handle control flow builtins.
  * Returns null if the builtin name is not a control builtin handled here.
@@ -38,7 +34,6 @@ export function evalControlBuiltin(
   evaluate: EvalFn,
   evaluateWithPartialResults: EvalWithPartialFn,
   isTruthy: IsTruthyFn,
-  ExecutionLimitError: ExecutionLimitErrorClass,
 ): QueryValue[] | null {
   switch (name) {
     case "first":
@@ -49,7 +44,7 @@ export function evalControlBuiltin(
           return results.length > 0 ? [results[0]] : [];
         } catch (e) {
           // Always re-throw execution limit errors
-          if (e instanceof ExecutionLimitError) throw e;
+          if ((e as Error).name === "ExecutionLimitError") throw e;
           return [];
         }
       }
@@ -83,7 +78,7 @@ export function evalControlBuiltin(
           results = evaluateWithPartialResults(value, args[1], ctx);
         } catch (e) {
           // Always re-throw execution limit errors
-          if (e instanceof ExecutionLimitError) throw e;
+          if ((e as Error).name === "ExecutionLimitError") throw e;
           results = [];
         }
         return ns.flatMap((nv) => {
@@ -191,7 +186,7 @@ export function evalControlBuiltin(
           results = evaluateWithPartialResults(value, args[1], ctx);
         } catch (e) {
           // Always re-throw execution limit errors
-          if (e instanceof ExecutionLimitError) throw e;
+          if ((e as Error).name === "ExecutionLimitError") throw e;
           results = [];
         }
         return results.slice(0, n);
@@ -209,7 +204,7 @@ export function evalControlBuiltin(
         return [results.length === 0];
       } catch (e) {
         // Always re-throw execution limit errors
-        if (e instanceof ExecutionLimitError) throw e;
+        if ((e as Error).name === "ExecutionLimitError") throw e;
         // If an error occurs without any results, return true
         return [true];
       }
@@ -223,7 +218,7 @@ export function evalControlBuiltin(
         return [results.length > 0];
       } catch (e) {
         // Always re-throw execution limit errors
-        if (e instanceof ExecutionLimitError) throw e;
+        if ((e as Error).name === "ExecutionLimitError") throw e;
         // Any other error means invalid
         return [false];
       }

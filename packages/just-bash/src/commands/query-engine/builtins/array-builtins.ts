@@ -26,11 +26,6 @@ type EvalWithPartialFn = (
 type CompareFn = (a: QueryValue, b: QueryValue) => number;
 type IsTruthyFn = (v: QueryValue) => boolean;
 type ContainsDeepFn = (a: QueryValue, b: QueryValue) => boolean;
-type ExecutionLimitErrorClass = new (
-  message: string,
-  kind: "recursion" | "commands" | "iterations",
-) => Error;
-
 function assertResultCapacity(
   ctx: EvalContext,
   current: number,
@@ -59,7 +54,6 @@ export function evalArrayBuiltin(
   compareJq: CompareFn,
   isTruthy: IsTruthyFn,
   containsDeep: ContainsDeepFn,
-  ExecutionLimitError: ExecutionLimitErrorClass,
 ): QueryValue[] | null {
   switch (name) {
     case "sort":
@@ -224,7 +218,7 @@ export function evalArrayBuiltin(
           }
         } catch (e) {
           // Always re-throw execution limit errors
-          if (e instanceof ExecutionLimitError) throw e;
+          if ((e as Error).name === "ExecutionLimitError") throw e;
           // Error occurred but we might have found a truthy value already
         }
         return [false];
@@ -253,7 +247,7 @@ export function evalArrayBuiltin(
           }
         } catch (e) {
           // Always re-throw execution limit errors
-          if (e instanceof ExecutionLimitError) throw e;
+          if ((e as Error).name === "ExecutionLimitError") throw e;
           // Error occurred but we might have found a falsy value already
         }
         return [true];

@@ -308,9 +308,18 @@ function boundedFlatMap(
   return results;
 }
 
+function cloneValueArray(x: unknown): QueryValue[] {
+  const src = x as QueryValue[];
+  const out: QueryValue[] = [];
+  for (let i = 0; i < src.length; i++) {
+    out.push(src[i]);
+  }
+  return out;
+}
+
 function hasVarsField(x: EvalContext | EvaluateOptions): boolean {
-  const probe = x as unknown as { vars: VarStore } | { limits?: QueryExecutionLimits };
-  return "vars" in probe;
+  const probe = x as unknown as EvalContext;
+  return probe.vars !== undefined;
 }
 
 function createContext(options?: EvaluateOptions): EvalContext {
@@ -435,15 +444,17 @@ function getValueAtPath(
     if (v && typeof v === "object") {
       if (Array.isArray(v)) {
         if (typeof key === "number") {
-          v = v[key];
+          const avPath = v as QueryValue[];
+          v = avPath[key];
         } else {
           return undefined;
         }
       } else {
         // Defense against prototype pollution: only access own properties
         const obj = asQueryRecord(v);
-        if (obj && typeof key === "string" && safeHasOwn(obj, key)) {
-          v = obj[key];
+        const skPath = key as string;
+        if (obj && typeof key === "string" && safeHasOwn(obj, skPath)) {
+          v = obj[skPath];
         } else {
           return undefined;
         }
@@ -1533,7 +1544,7 @@ function applyDel(
         const indices = evaluate(root, pathNode.index, ctx);
         const idx = indices[0];
         if (typeof idx === "number" && Array.isArray(obj)) {
-          const arr = [...obj];
+          const arr: QueryValue[] = cloneValueArray(obj);
           const i = idx < 0 ? arr.length + idx : idx;
           if (i >= 0 && i < arr.length) {
             arr[i] = newVal;
@@ -1617,7 +1628,7 @@ function applyDel(
         const idx = indices[0];
 
         if (typeof idx === "number" && Array.isArray(val)) {
-          const arr = [...val];
+          const arr: QueryValue[] = cloneValueArray(val);
           const i = idx < 0 ? arr.length + idx : idx;
           if (i >= 0 && i < arr.length) {
             arr.splice(i, 1);
@@ -1681,7 +1692,7 @@ function applyDel(
               const indices = evaluate(root, pathNode.index, ctx);
               const idx = indices[0];
               if (typeof idx === "number" && Array.isArray(obj)) {
-                const arr = [...obj];
+                const arr: QueryValue[] = cloneValueArray(obj);
                 const i = idx < 0 ? arr.length + idx : idx;
                 if (i >= 0 && i < arr.length) {
                   arr[i] = newVal;
@@ -1973,7 +1984,6 @@ function evalBuiltin(
     compareJq,
     isTruthy,
     containsDeep,
-    ExecutionLimitError,
   );
   if (arrayResult !== null) return arrayResult;
 
@@ -2009,7 +2019,6 @@ function evalBuiltin(
     evalCtx,
     evaluateWithPartialResults,
     isTruthy,
-    ExecutionLimitError,
   );
   if (controlResult !== null) return controlResult;
 
@@ -2265,7 +2274,8 @@ function evalBuiltin(
             // Store as a function that returns all the values
             let bodyNode: AstNode;
             if (argVals.length === 0) {
-              bodyNode = { type: "Call", name: "empty", args: [] };
+              const emptyArgs: AstNode[] = [];
+              bodyNode = { type: "Call", name: "empty", args: emptyArgs };
             } else if (argVals.length === 1) {
               bodyNode = { type: "Literal", value: argVals[0] };
             } else {
@@ -2358,22 +2368,33 @@ function collectPaths(
       const entry = stack.pop();
       if (!entry) break;
       chargeQueryWork(ctx);
-      appendPath([...currentPath, ...entry.path]);
+      const ap1: (string | number)[] = [];
+      for (let j = 0; j < currentPath.length; j++) ap1.push(currentPath[j]);
+      for (let j = 0; j < entry.path.length; j++) ap1.push(entry.path[j]);
+      appendPath(ap1);
       if (entry.value && typeof entry.value === "object") {
-        const entries = Array.isArray(entry.value)
-          ? entry.value.map((child, index) => [index, child] as const)
-          : Object.keys(entry.value).map(
-              (key) =>
-                [
-                  key,
-                  // @banned-pattern-ignore: Object.keys returns own properties only
-                  (entry.value as Record<string, unknown>)[key],
-                ] as const,
-            );
-        assertQueryResultCapacity(ctx, 0, stack.length + entries.length);
-        for (let i = entries.length - 1; i >= 0; i--) {
-          const [key, child] = entries[i];
-          stack.push({ value: child, path: [...entry.path, key] });
+        const walkKeys: (string | number)[] = [];
+        const walkVals: QueryValue[] = [];
+        if (Array.isArray(entry.value)) {
+          const evArr = entry.value as QueryValue[];
+          for (let j = 0; j < evArr.length; j++) {
+            walkKeys.push(j);
+            walkVals.push(evArr[j]);
+          }
+        } else {
+          const evRec = entry.value as Record<string, QueryValue>;
+          const evKeys = Object.keys(evRec);
+          for (let j = 0; j < evKeys.length; j++) {
+            walkKeys.push(evKeys[j]);
+            walkVals.push(evRec[evKeys[j]]);
+          }
+        }
+        assertQueryResultCapacity(ctx, 0, stack.length + walkKeys.length);
+        for (let i = walkKeys.length - 1; i >= 0; i--) {
+          const np3: (string | number)[] = [];
+          for (let j = 0; j < entry.path.length; j++) np3.push(entry.path[j]);
+          np3.push(walkKeys[i]);
+          stack.push({ value: walkVals[i], path: np3 });
         }
       }
     }

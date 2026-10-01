@@ -320,8 +320,15 @@ export function nullPrototypeCopy<T extends object>(
  * Merge multiple objects into a new null-prototype object.
  * This prevents prototype chain lookups without filtering any keys.
  */
-export function nullPrototypeMerge<T extends object>(
-  ...objs: T[]
-): T & Record<string, unknown> {
-  return Object.assign(Object.create(null), ...objs);
+export function nullPrototypeMerge(a: object, b: object): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const ka = Object.keys(a);
+  for (let i = 0; i < ka.length; i++) {
+    out[ka[i]] = (a as Record<string, unknown>)[ka[i]];
+  }
+  const kb = Object.keys(b);
+  for (let i = 0; i < kb.length; i++) {
+    out[kb[i]] = (b as Record<string, unknown>)[kb[i]];
+  }
+  return out;
 }
