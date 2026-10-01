@@ -50,7 +50,8 @@ function getMatcherWorkLimit(ctx: RuntimeCommandContext): number {
 }
 
 function useTraversalOperation(budget: GrepTraversalBudget): void {
-  if (++budget.operations > budget.maxOperations) {
+  budget.operations = budget.operations + 1;
+  if (budget.operations > budget.maxOperations) {
     throw new ExecutionLimitError(
       `grep: glob operation limit exceeded (${budget.maxOperations})`,
       "glob_operations",
@@ -751,17 +752,24 @@ export const grepCommand: RuntimeCommand = {
       for (const res of results) {
         if (res === null) continue;
 
-        if ("error" in res && res.error) {
-          stderr += res.error;
-          if (!res.error.includes("Is a directory")) {
+        const resView = res as unknown as {
+          error: string | null | undefined;
+          file: string | null | undefined;
+          result: { matched: boolean } | null | undefined;
+        };
+        const resError = resView.error;
+        if (resError !== null && resError !== undefined && resError.length > 0) {
+          stderr += resError;
+          if (!resError.includes("Is a directory")) {
             anyError = true;
           }
           continue;
         }
 
-        if (!("file" in res) || !res.result) continue;
-
-        const { file, result } = res;
+        const file = resView.file;
+        const result = resView.result;
+        if (file === null || file === undefined) continue;
+        if (result === null || result === undefined) continue;
         if (result.matched) {
           anyMatch = true;
           if (quietMode) {

@@ -151,9 +151,9 @@ export async function expandSubscriptForAssocArray(
   let result = "";
   let i = 0;
   while (i < inner.length) {
-    if (inner[i] === "$") {
+    if (inner.charAt(i) === "$") {
       // Check for $(...) command substitution
-      if (inner[i + 1] === "(") {
+      if (inner.charAt(i + 1) === "(") {
         // Find matching closing paren
         let depth = 1;
         let j = i + 2;
@@ -182,7 +182,7 @@ export async function expandSubscriptForAssocArray(
           }
         }
         i = j;
-      } else if (inner[i + 1] === "{") {
+      } else if (inner.charAt(i + 1) === "{") {
         // Check for ${...} - find matching }
         let depth = 1;
         let j = i + 2;
@@ -196,7 +196,7 @@ export async function expandSubscriptForAssocArray(
         const value = await getVariable(ctx, varExpr);
         result += value;
         i = j;
-      } else if (/[a-zA-Z_]/.test(inner[i + 1] || "")) {
+      } else if (/[a-zA-Z_]/.test(inner.charAt(i + 1) || "")) {
         // $name - find end of name
         let j = i + 1;
         while (j < inner.length && /[a-zA-Z0-9_]/.test(inner[j])) {
@@ -208,10 +208,10 @@ export async function expandSubscriptForAssocArray(
         result += value;
         i = j;
       } else {
-        result += inner[i];
+        result += inner.charAt(i);
         i++;
       }
-    } else if (inner[i] === "`") {
+    } else if (inner.charAt(i) === "`") {
       // Legacy backtick command substitution
       let j = i + 1;
       while (j < inner.length && inner[j] !== "`") {
@@ -230,7 +230,7 @@ export async function expandSubscriptForAssocArray(
       }
       i = j + 1;
     } else {
-      result += inner[i];
+      result += inner.charAt(i);
       i++;
     }
   }

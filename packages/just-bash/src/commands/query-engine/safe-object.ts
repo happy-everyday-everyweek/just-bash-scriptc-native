@@ -41,10 +41,8 @@ function assertSafeObject(obj: unknown, caller: string): void {
   if (Array.isArray(obj)) {
     throw new TypeError(`${caller}: expected object, got array`);
   }
-  if (Object.getPrototypeOf(obj) !== null) {
-    throw new TypeError(
-      `${caller}: expected null-prototype object, got prototypal object`,
-    );
+  if (obj === null || typeof obj !== "object") {
+    throw new TypeError(`${caller}: expected object, got ${typeof obj}`);
   }
 }
 
@@ -83,10 +81,10 @@ export function safeGet<T>(obj: Record<string, T>, key: string): T | undefined {
  * Safely set a property on an object.
  * Silently ignores dangerous keys to prevent prototype pollution.
  */
-export function safeSet<T>(
-  obj: Record<string, T>,
+export function safeSet(
+  obj: Record<string, unknown>,
   key: string,
-  value: T,
+  value: unknown,
 ): void {
   assertSafeObject(obj, "safeSet");
   if (isSafeKey(key)) {
@@ -183,7 +181,8 @@ export function sanitizeParsedData(
 ): unknown {
   const maxDepth = limits.maxDepth ?? 2000;
   const maxElements = limits.maxElements ?? 1_000_000;
-  const seen = new WeakMap<object, unknown>();
+  const seenSrc: object[] = [];
+  const seenVals: unknown[] = [];
   const elementBudget = limits.elementBudget ?? { used: 0 };
   if (
     !Number.isSafeInteger(elementBudget.used) ||
@@ -197,7 +196,8 @@ export function sanitizeParsedData(
   }
 
   const assertElement = (): void => {
-    if (++elementBudget.used > maxElements) {
+    elementBudget.used = elementBudget.used + 1;
+    if (elementBudget.used > maxElements) {
       throw new ExecutionLimitError(
         `query input element limit exceeded (${maxElements})`,
         "array_elements",
@@ -215,9 +215,11 @@ export function sanitizeParsedData(
     }>,
   ): unknown => {
     if (current === null || typeof current !== "object") return current;
-    if (current instanceof Date) return current;
+    const maybeDate = current as { getTime?: () => number };
+    if (typeof maybeDate.getTime === "function") return current;
 
-    const cached = seen.get(current);
+    const cIdx = seenSrc.indexOf(current as object);
+    const cached = cIdx === -1 ? undefined : seenVals[cIdx];
     if (cached !== undefined) return cached;
     if (depth > maxDepth) {
       throw new ExecutionLimitError(
@@ -229,7 +231,8 @@ export function sanitizeParsedData(
     const target: unknown[] | Record<string, unknown> = Array.isArray(current)
       ? []
       : Object.create(null);
-    seen.set(current, target);
+    seenSrc.push(current as object);
+    seenVals.push(target);
     pending.push({ source: current, target, depth });
     return target;
   };

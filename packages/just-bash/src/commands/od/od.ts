@@ -100,7 +100,20 @@ async function odExecute(
       return `   ${String.fromCharCode(code)}`;
     }
     // Non-printable - use 3-digit octal WITHOUT backslash (this is real od behavior)
-    return ` ${code.toString(8).padStart(3, "0")}`;
+    return ` ${odToRadix(code, 8, 3)}`;
+  }
+
+  function odToRadix(n: number, radix: number, width: number): string {
+    let x = n;
+    let sOut = "";
+    if (x === 0) sOut = "0";
+    const digits = "0123456789abcdef";
+    while (x > 0) {
+      sOut = digits.charAt(x % radix) + sOut;
+      x = Math.floor(x / radix);
+    }
+    while (sOut.length < width) sOut = "0" + sOut;
+    return sOut;
   }
 
   // Format a single byte for hex mode
@@ -108,15 +121,15 @@ async function odExecute(
   function formatHexByte(code: number): string {
     if (hasCharFormat) {
       // 4-char field: 2 spaces + 2 hex digits
-      return `  ${code.toString(16).padStart(2, "0")}`;
+      return `  ${odToRadix(code, 16, 2)}`;
     }
     // 3-char field: 1 space + 2 hex digits
-    return ` ${code.toString(16).padStart(2, "0")}`;
+    return ` ${odToRadix(code, 16, 2)}`;
   }
 
   // Format a single byte for octal mode (right-aligned)
   function formatOctalByte(code: number): string {
-    return ` ${code.toString(8).padStart(3, "0")}`;
+    return ` ${odToRadix(code, 8, 3)}`;
   }
 
   const inputBytes = input.build();
@@ -170,7 +183,7 @@ async function odExecute(
       // Add address prefix only for the first format of each offset
       let prefix = "";
       if (formatIdx === 0 && addressMode !== "none") {
-        prefix = `${offset.toString(8).padStart(7, "0")} `;
+        prefix = `${odToRadix(offset, 8, 7)} `;
       } else if (formatIdx > 0 || addressMode === "none") {
         // For subsequent formats or no-address mode, just use spaces
         prefix = addressMode === "none" ? "" : "        ";
@@ -183,7 +196,7 @@ async function odExecute(
 
   // Add final address
   if (addressMode !== "none" && inputBytes.length > 0) {
-    output.append(inputBytes.length.toString(8).padStart(7, "0")).append("\n");
+    output.append(odToRadix(inputBytes.length, 8, 7)).append("\n");
   }
 
   return {

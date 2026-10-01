@@ -9,10 +9,9 @@
  * necessary (e.g., Python WASM worker IPC). Any import from this module
  * should be reviewed for security implications.
  */
-export const _SharedArrayBuffer: typeof globalThis.SharedArrayBuffer =
-  globalThis.SharedArrayBuffer;
-export const _Atomics: typeof globalThis.Atomics = globalThis.Atomics;
+export const _SharedArrayBuffer: unknown = undefined;
+export const _Atomics: unknown = undefined;
 export const _performanceNow: () => number = performance.now.bind(performance);
-export const _Headers: typeof globalThis.Headers = globalThis.Headers;
+export const _Headers: unknown = undefined;
 /** Internal capability revocation; never expose this constructor to commands. */
-export const _Proxy: ProxyConstructor = globalThis.Proxy;
+export const _Proxy: unknown = undefined;

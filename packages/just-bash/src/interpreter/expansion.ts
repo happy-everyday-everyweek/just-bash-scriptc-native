@@ -806,10 +806,14 @@ async function expandPart(
 
       // Command substitutions get a new BASHPID (unlike $$ which stays the same)
       const savedBashPid = ctx.state.bashPid;
-      ctx.state.bashPid = ctx.state.nextVirtualPid++;
+      ctx.state.bashPid = ctx.state.nextVirtualPid;
+      ctx.state.nextVirtualPid = ctx.state.nextVirtualPid + 1;
       // Save environment - command substitutions run in a subshell and should not
       // modify parent environment (e.g., aliases defined inside $() should not leak)
-      const savedEnv = new Map(ctx.state.env);
+      const savedEnv = new Map<string, string>();
+      for (const [ek, ev] of ctx.state.env) {
+        savedEnv.set(ek, ev);
+      }
       const savedArrays = cloneArrays(ctx.state.arrays);
       const savedCwd = ctx.state.cwd;
       // Suppress verbose mode (set -v) inside command substitutions

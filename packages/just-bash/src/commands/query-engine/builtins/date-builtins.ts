@@ -159,8 +159,8 @@ export function evalDateBuiltin(
         .replace(/%H/g, pad(date.getUTCHours()))
         .replace(/%M/g, pad(date.getUTCMinutes()))
         .replace(/%S/g, pad(date.getUTCSeconds()))
-        .replace(/%A/g, dayNames[date.getUTCDay()])
-        .replace(/%B/g, monthNames[date.getUTCMonth()])
+        .replace(/%A/g, `${dayNames[date.getUTCDay()]}`)
+        .replace(/%B/g, `${monthNames[date.getUTCMonth()]}`)
         .replace(/%Z/g, "UTC")
         .replace(/%%/g, "%");
       return [result];

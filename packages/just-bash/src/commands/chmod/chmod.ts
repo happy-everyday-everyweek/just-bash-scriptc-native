@@ -117,7 +117,7 @@ export const chmodCommand: RuntimeCommand = {
         await ctx.fs.chmod(filePath, modeValue);
         if (verbose) {
           output.append(
-            `mode of '${file}' changed to ${modeValue.toString(8).padStart(4, "0")}\n`,
+            `mode of '${file}' changed to ${chmodOctal4(modeValue)}\n`,
           );
         }
 
@@ -182,7 +182,7 @@ async function chmodRecursive(
       await ctx.fs.chmod(entry.path, modeValue);
       if (verbose) {
         output.append(
-          `mode of '${entry.path}' changed to ${modeValue.toString(8).padStart(4, "0")}\n`,
+          `mode of '${entry.path}' changed to ${chmodOctal4(modeValue)}\n`,
         );
       }
     },
@@ -294,3 +294,16 @@ export const flagsForFuzzing: CommandFuzzInfo = {
   needsArgs: true,
   minArgs: 2,
 };
+
+
+function chmodOctal4(n: number): string {
+  let x = n;
+  let sOut = "";
+  if (x === 0) sOut = "0";
+  while (x > 0) {
+    sOut = "01234567".charAt(x % 8) + sOut;
+    x = Math.floor(x / 8);
+  }
+  while (sOut.length < 4) sOut = "0" + sOut;
+  return sOut;
+}
