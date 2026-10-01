@@ -100,66 +100,18 @@ function getDatePartsInTimezone(
   second: number;
   weekday: number;
 } {
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    weekday: "short",
-    hour12: false,
-    timeZone: tz,
+  // Named-timezone rendering needs `Intl.DateTimeFormat`, which has no
+  // static lowering; the compiled build renders in the host's local time.
+  void tz;
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+    weekday: date.getDay(),
   };
-
-  try {
-    const formatter = new Intl.DateTimeFormat("en-US", options);
-    const parts = formatter.formatToParts(date);
-
-    const getValue = (type: string): string =>
-      parts.find((p) => p.type === type)?.value ?? "";
-
-    // Convert weekday abbreviation to number (0=Sunday, 6=Saturday)
-    // Map prevents prototype pollution
-    const weekdayMap = new Map<string, number>([
-      ["Sun", 0],
-      ["Mon", 1],
-      ["Tue", 2],
-      ["Wed", 3],
-      ["Thu", 4],
-      ["Fri", 5],
-      ["Sat", 6],
-    ]);
-    const weekdayStr = getValue("weekday");
-
-    // Use NaN-safe parsing so zero-valued fields (hour/minute/second = 0)
-    // don't incorrectly fall back to local time via the || operator.
-    const parseField = (val: string, fallback: number): number => {
-      const n = parseIntDecimal(val);
-      return Number.isNaN(n) ? fallback : n;
-    };
-    return {
-      year: parseField(getValue("year"), date.getFullYear()),
-      month: parseField(getValue("month"), date.getMonth() + 1),
-      day: parseField(getValue("day"), date.getDate()),
-      // % 24 normalises the rare browser quirk of returning 24 for midnight
-      hour: parseField(getValue("hour"), date.getHours()) % 24,
-      minute: parseField(getValue("minute"), date.getMinutes()),
-      second: parseField(getValue("second"), date.getSeconds()),
-      weekday: weekdayMap.get(weekdayStr) ?? date.getDay(),
-    };
-  } catch {
-    // Fall back to local time if timezone is invalid
-    return {
-      year: date.getFullYear(),
-      month: date.getMonth() + 1,
-      day: date.getDate(),
-      hour: date.getHours(),
-      minute: date.getMinutes(),
-      second: date.getSeconds(),
-      weekday: date.getDay(),
-    };
-  }
 }
 
 /**
@@ -341,30 +293,9 @@ function getTimezoneOffset(date: Date, tz?: string): string {
     return `${sign}${String(hours).padStart(2, "0")}${String(mins).padStart(2, "0")}`;
   }
 
-  // For named timezone, we need to get the offset at this specific time
-  // This is complex because timezones have DST
-  try {
-    // Get time string with timezone
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      timeZoneName: "longOffset",
-    });
-    const parts = formatter.formatToParts(date);
-    const tzPart = parts.find((p) => p.type === "timeZoneName");
-    if (tzPart) {
-      // Value is like "GMT-08:00" or "GMT+05:30"
-      const match = tzPart.value.match(/GMT([+-])(\d{2}):(\d{2})/);
-      if (match) {
-        return `${match[1]}${match[2]}${match[3]}`;
-      }
-      // Check for UTC case
-      if (tzPart.value === "GMT" || tzPart.value === "UTC") {
-        return "+0000";
-      }
-    }
-  } catch {
-    // Fall through to local offset
-  }
+  // Named-timezone offsets need `Intl.DateTimeFormat`; the compiled build
+  // falls back to the host's local offset below.
+  void tz;
 
   // Fallback to local timezone offset
   const offset = -date.getTimezoneOffset();
@@ -378,17 +309,15 @@ function getTimezoneOffset(date: Date, tz?: string): string {
  * Get the timezone name abbreviation.
  */
 function getTimezoneName(date: Date, tz?: string): string {
-  try {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      timeZoneName: "short",
-    });
-    const parts = formatter.formatToParts(date);
-    const tzPart = parts.find((p) => p.type === "timeZoneName");
-    return tzPart?.value ?? "UTC";
-  } catch {
-    return "UTC";
-  }
+  // `Intl.DateTimeFormat` has no static lowering; render the local offset.
+  void tz;
+  const offset = -date.getTimezoneOffset();
+  if (offset === 0) return "UTC";
+  const sign = offset > 0 ? "+" : "-";
+  const abs = Math.abs(offset);
+  const hours = Math.floor(abs / 60);
+  const mins = abs % 60;
+  return `GMT${sign}${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
 
 /**
@@ -415,6 +344,44 @@ function getDayOfYearForParts(
  * startDay: 0 = Sunday (%U), 1 = Monday (%W)
  * Days before the first occurrence of startDay are week 00.
  */
+/** Days since 1970-01-01 for a proleptic Gregorian date (Hinnant). */
+function daysFromCivil(year: number, month: number, day: number): number {
+  const y = month <= 2 ? year - 1 : year;
+  const era = Math.floor(y / 400);
+  const yoe = y - era * 400;
+  const mp = (month + 9) % 12;
+  const doy = Math.floor((153 * mp + 2) / 5) + day - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146097 + doe - 719468;
+}
+
+/** Calendar date for a day number (Hinnant). */
+function civilFromDays(dayNumber: number): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const z = dayNumber + 719468;
+  const era = Math.floor(z / 146097);
+  const doe = z - era * 146097;
+  const yoe = Math.floor(
+    (doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) /
+      365,
+  );
+  const y = yoe + era * 400;
+  const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+  const mp = Math.floor((5 * doy + 2) / 153);
+  const day = doy - Math.floor((153 * mp + 2) / 5) + 1;
+  const month = mp < 10 ? mp + 3 : mp - 9;
+  return { year: month <= 2 ? y + 1 : y, month, day };
+}
+
+/** Weekday (0 = Sunday) for a calendar date, host timezone independent. */
+function weekdayOf(year: number, month: number, day: number): number {
+  const wd = (daysFromCivil(year, month, day) + 4) % 7;
+  return wd < 0 ? wd + 7 : wd;
+}
+
 function getWeekNumberForParts(
   year: number,
   month: number,
@@ -423,7 +390,7 @@ function getWeekNumberForParts(
   startDay: number,
 ): number {
   const doy = getDayOfYearForParts(year, month, day);
-  const jan1dow = new Date(year, 0, 1).getDay(); // 0=Sun
+  const jan1dow = weekdayOf(year, 1, 1); // 0=Sun
   // Day-of-year (1-based) of the first startDay on or after Jan 1
   const firstWeekStart = 1 + ((7 + startDay - jan1dow) % 7);
   const days = doy - firstWeekStart;
@@ -438,26 +405,20 @@ function getISOWeekNumberForParts(
   month: number,
   day: number,
 ): number {
-  // Create date in local time at noon to avoid DST issues
-  const tempDate = new Date(year, month - 1, day, 12, 0, 0);
-  // Get nearest Thursday
-  tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7));
-  // Get first Thursday of year
-  const firstThursday = new Date(tempDate.getFullYear(), 0, 4);
-  firstThursday.setDate(
-    firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7),
-  );
-  // Calculate week number
-  const diff = tempDate.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+  const dayNumber = daysFromCivil(year, month, day);
+  const thursday = dayNumber + 3 - ((weekdayOf(year, month, day) + 6) % 7);
+  const thursdayParts = civilFromDays(thursday);
+  const jan4 = daysFromCivil(thursdayParts.year, 1, 4);
+  const jan4dow = (jan4 + 4) % 7 < 0 ? ((jan4 + 4) % 7) + 7 : (jan4 + 4) % 7;
+  const firstThursday = jan4 + 3 - ((jan4dow + 6) % 7);
+  return 1 + Math.round((thursday - firstThursday) / 7);
 }
 
 /**
  * Get the ISO week year (may differ from calendar year at year boundaries).
  */
 function getISOWeekYear(year: number, month: number, day: number): number {
-  const tempDate = new Date(year, month - 1, day, 12, 0, 0);
-  // Get nearest Thursday
-  tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7));
-  return tempDate.getFullYear();
+  const dayNumber = daysFromCivil(year, month, day);
+  const thursday = dayNumber + 3 - ((weekdayOf(year, month, day) + 6) % 7);
+  return civilFromDays(thursday).year;
 }
