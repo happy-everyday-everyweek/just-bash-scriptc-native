@@ -314,8 +314,8 @@ function evalComparison(left: AwkValue, right: AwkValue, op: string): number {
     }
   }
 
-  const l = toAwkString(left);
-  const r = toAwkString(right);
+  const l = awkCmpString(left);
+  const r = awkCmpString(right);
   switch (op) {
     case "<":
       return l < r ? 1 : 0;
@@ -351,6 +351,11 @@ async function evalUnaryOp(
     default:
       return val;
   }
+}
+
+function awkCmpString(v: AwkValue): string {
+  const s = toAwkString(v);
+  return typeof s === "string" ? s : String(s);
 }
 
 async function evalFunctionCall(

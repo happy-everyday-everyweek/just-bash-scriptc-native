@@ -1,3 +1,4 @@
+import type { ResolvedFileIdentity } from "../../fs/traversal.js";
 /**
  * split - split a file into pieces
  *
@@ -46,11 +47,27 @@ const splitHelp = {
 };
 
 /** Maximum number of output files to prevent resource exhaustion */
+function identityCanonical(x: ResolvedFileIdentity | null): string | undefined {
+  if (x === null) return undefined;
+  if (x.existence === "unknown") return undefined;
+  return x.canonicalPath;
+}
+
+function identityStable(x: ResolvedFileIdentity | null): string | undefined {
+  if (x === null) return undefined;
+  if (x.existence !== "existing") return undefined;
+  return x.stableIdentity;
+}
+
 const MAX_OUTPUT_FILES = 100_000;
 let splitTransactionId = 0;
 
 function toUint8Array(content: string): Uint8Array {
-  return Uint8Array.from(content, (char) => char.charCodeAt(0));
+  const out = new Uint8Array(content.length);
+  for (let i = 0; i < content.length; i++) {
+    out[i] = content.charCodeAt(i);
+  }
+  return out;
 }
 
 type SplitMode = "lines" | "bytes" | "chunks";
@@ -500,8 +517,11 @@ export const split: RuntimeCommand = {
           chunks = splitIntoChunks(content, options.chunks);
           break;
         default: {
-          const _exhaustive: never = options.mode;
-          return _exhaustive;
+          return {
+            exitCode: 1,
+            stdout: "",
+            stderr: "split: unsupported mode\n",
+          };
         }
       }
 
@@ -536,7 +556,7 @@ export const split: RuntimeCommand = {
       const inputIdentity = inputPath
         ? await resolveFileIdentity(ctx.fs, inputPath)
         : null;
-      if (inputIdentity?.existence === "unknown") {
+      if (inputIdentity !== null && inputIdentity.existence === "unknown") {
         return {
           exitCode: 1,
           stdout: "",
@@ -569,12 +589,10 @@ export const split: RuntimeCommand = {
         }
         if (
           inputIdentity !== null &&
-          ((inputIdentity.existence === "existing" &&
-            identity.existence === "existing" &&
-            inputIdentity.stableIdentity !== undefined &&
-            inputIdentity.stableIdentity === identity.stableIdentity) ||
-            (inputIdentity.canonicalPath !== undefined &&
-              inputIdentity.canonicalPath === identity.canonicalPath))
+          ((identityStable(inputIdentity) !== undefined &&
+            identityStable(inputIdentity) === identityStable(identity)) ||
+            (identityCanonical(inputIdentity) !== undefined &&
+              identityCanonical(inputIdentity) === identityCanonical(identity)))
         ) {
           return {
             exitCode: 1,
@@ -620,9 +638,9 @@ export const split: RuntimeCommand = {
             throw new Error("output identity changed during split");
           }
           if (
-            inputIdentity?.existence === "existing" &&
-            current.existence === "existing" &&
-            inputIdentity.stableIdentity === current.stableIdentity
+            inputIdentity !== null &&
+            identityStable(inputIdentity) !== undefined &&
+            identityStable(inputIdentity) === identityStable(current)
           ) {
             throw new Error("output aliases input");
           }

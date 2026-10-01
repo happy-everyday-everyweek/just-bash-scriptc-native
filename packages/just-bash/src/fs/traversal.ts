@@ -69,6 +69,18 @@ export type ResolvedFileIdentity =
     }
   | { readonly existence: "unknown" };
 
+function trvCanonical(x: ResolvedFileIdentity | null): string | undefined {
+  if (x === null) return undefined;
+  if (x.existence === "unknown") return undefined;
+  return x.canonicalPath;
+}
+
+function trvStable(x: ResolvedFileIdentity | null): string | undefined {
+  if (x === null) return undefined;
+  if (x.existence !== "existing") return undefined;
+  return x.stableIdentity;
+}
+
 function statIdentity(stat: FsStat): string | undefined {
   if (stat.identity !== undefined) return `identity:${stat.identity}`;
   if (stat.dev !== undefined && stat.ino !== undefined) {
@@ -105,14 +117,14 @@ export async function resolveFileIdentity(
     const stableIdentity = statIdentity(stat);
     try {
       return {
-        existence: "existing",
+        existence: "existing" as const,
         canonicalPath: normalizePath(await fs.realpath(normalized)),
         stableIdentity,
       };
     } catch {
       return stableIdentity === undefined
-        ? { existence: "unknown" }
-        : { existence: "existing", stableIdentity };
+        ? { existence: "unknown" as const }
+        : { existence: "existing" as const, stableIdentity };
     }
   }
 
@@ -129,7 +141,7 @@ export async function resolveFileIdentity(
     try {
       const canonicalParent = normalizePath(await fs.realpath(candidate));
       return {
-        existence: "missing",
+        existence: "missing" as const,
         canonicalPath: missingComponents.reduce(
           (current, component) => joinPath(current, component),
           canonicalParent,
@@ -181,10 +193,9 @@ export async function compareFileIdentity(
   // Equal canonical paths prove sameness. Different spellings do not prove
   // inequality without alias-resistant identities because they may be hard
   // links to the same inode.
-  return leftIdentity.canonicalPath !== undefined &&
-    leftIdentity.canonicalPath === rightIdentity.canonicalPath
-    ? "same"
-    : "unknown";
+  const lcId = trvCanonical(leftIdentity);
+  const rcId = trvCanonical(rightIdentity);
+  return lcId !== undefined && lcId === rcId ? "same" : "unknown";
 }
 
 /**
@@ -202,15 +213,12 @@ export async function compareCanonicalContainment(
     resolveFileIdentity(fs, sourceDirectory, budget),
     resolveFileIdentity(fs, destination, budget),
   ]);
-  if (
-    source.existence !== "existing" ||
-    source.canonicalPath === undefined ||
-    candidate.existence === "unknown" ||
-    candidate.canonicalPath === undefined
-  ) {
-    return "unknown";
-  }
-  return isSameOrDescendantPath(source.canonicalPath, candidate.canonicalPath)
+  if (source.existence !== "existing") return "unknown";
+  if (candidate.existence === "unknown") return "unknown";
+  const srcCanon = trvCanonical(source);
+  const candCanon = trvCanonical(candidate);
+  if (srcCanon === undefined || candCanon === undefined) return "unknown";
+  return isSameOrDescendantPath(srcCanon, candCanon)
     ? "inside"
     : "outside";
 }

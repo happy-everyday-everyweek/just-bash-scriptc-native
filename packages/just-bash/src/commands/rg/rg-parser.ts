@@ -120,7 +120,7 @@ const VALUE_OPTS: ValueOptDef[] = [
   },
   { long: "type-add", target: "typeAdd", multi: true },
   { long: "type-clear", target: "typeClear", multi: true },
-  { short: "m", long: "max-count", target: "maxCount", parse: parseInt },
+  { short: "m", long: "max-count", target: "maxCount", parse: parseIntDecimal },
   { short: "e", long: "regexp", target: "patterns", multi: true },
   { short: "f", long: "file", target: "patternFiles", multi: true },
   { short: "r", long: "replace", target: "replace" },

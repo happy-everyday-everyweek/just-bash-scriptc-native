@@ -48,33 +48,45 @@ export function parseExpressions(
 
     if (arg === "-name") {
       if (i + 1 >= args.length) return missingArgument(arg);
-      tokens.push({ type: "expr", expr: { type: "name", pattern: args[++i] } });
+      const patName = args[i + 1] ?? "";
+      i = i + 1;
+      tokens.push({ type: "expr", expr: { type: "name", pattern: patName } });
     } else if (arg === "-iname") {
       if (i + 1 >= args.length) return missingArgument(arg);
+      const patIName = args[i + 1] ?? "";
+      i = i + 1;
       tokens.push({
         type: "expr",
-        expr: { type: "name", pattern: args[++i], ignoreCase: true },
+        expr: { type: "name", pattern: patIName, ignoreCase: true },
       });
     } else if (arg === "-path") {
       if (i + 1 >= args.length) return missingArgument(arg);
-      tokens.push({ type: "expr", expr: { type: "path", pattern: args[++i] } });
+      const patPath = args[i + 1] ?? "";
+      i = i + 1;
+      tokens.push({ type: "expr", expr: { type: "path", pattern: patPath } });
     } else if (arg === "-ipath") {
       if (i + 1 >= args.length) return missingArgument(arg);
+      const patIPath = args[i + 1] ?? "";
+      i = i + 1;
       tokens.push({
         type: "expr",
-        expr: { type: "path", pattern: args[++i], ignoreCase: true },
+        expr: { type: "path", pattern: patIPath, ignoreCase: true },
       });
     } else if (arg === "-regex") {
       if (i + 1 >= args.length) return missingArgument(arg);
+      const patRegex = args[i + 1] ?? "";
+      i = i + 1;
       tokens.push({
         type: "expr",
-        expr: { type: "regex", pattern: args[++i] },
+        expr: { type: "regex", pattern: patRegex },
       });
     } else if (arg === "-iregex") {
       if (i + 1 >= args.length) return missingArgument(arg);
+      const patIRegex = args[i + 1] ?? "";
+      i = i + 1;
       tokens.push({
         type: "expr",
-        expr: { type: "regex", pattern: args[++i], ignoreCase: true },
+        expr: { type: "regex", pattern: patIRegex, ignoreCase: true },
       });
     } else if (arg === "-type") {
       if (i + 1 >= args.length) return missingArgument(arg);

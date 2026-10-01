@@ -131,7 +131,7 @@ export class SecurityViolationError extends Error {
         message,
         violation.type,
         violation.type === "error_prepare_stack_trace" ||
-          getBlockedGlobalViolationTypes().has(violation.type),
+          getBlockedGlobalViolationTypes().includes(violation.type),
       ),
     );
     this.name = "SecurityViolationError";

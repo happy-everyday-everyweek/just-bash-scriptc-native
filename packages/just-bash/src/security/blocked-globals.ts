@@ -59,9 +59,9 @@ export interface BlockedGlobal {
   allowedKeys?: Set<string>;
 }
 
-let blockedGlobalViolationTypes: ReadonlySet<SecurityViolationType> | undefined;
+let blockedGlobalViolationTypes: string[] | undefined;
 
-export function getBlockedGlobalViolationTypes(): ReadonlySet<SecurityViolationType> {
+export function getBlockedGlobalViolationTypes(): string[] {
   if (!blockedGlobalViolationTypes) getBlockedGlobals();
   // biome-ignore lint/style/noNonNullAssertion: getBlockedGlobals initializes the cache
   return blockedGlobalViolationTypes!;
@@ -602,9 +602,9 @@ export function getBlockedGlobals(): BlockedGlobal[] {
       return false;
     }
   });
-  blockedGlobalViolationTypes ??= new Set(
+  blockedGlobalViolationTypes = [
     availableGlobals.map(({ violationType }) => violationType),
-  );
+  ];
   return availableGlobals;
 }
 

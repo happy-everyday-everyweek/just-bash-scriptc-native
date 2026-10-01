@@ -82,7 +82,7 @@ export class WorkerSecurityViolationError extends Error {
         message,
         violation.type,
         WORKER_SPECIAL_EXCLUDABLE_VIOLATION_TYPES.has(violation.type) ||
-          getBlockedGlobalViolationTypes().has(violation.type),
+          getBlockedGlobalViolationTypes().includes(violation.type),
       ),
     );
     this.name = "WorkerSecurityViolationError";
