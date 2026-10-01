@@ -104,8 +104,11 @@ export function initFilesystem(
 ): void {
   // Initialize for filesystems that support sync methods (InMemoryFs and OverlayFs)
   if (isSyncInitFs(fs)) {
-    initCommonDirectories(fs, useDefaultLayout);
-    initDevFiles(fs);
-    initProcFiles(fs, processInfo);
+    // The narrowing above is not carried into these calls: the intersection
+    // shape has no exact match, so the widened view is passed explicitly.
+    const syncFs = fs as unknown as SyncInitFs;
+    initCommonDirectories(syncFs, useDefaultLayout);
+    initDevFiles(syncFs);
+    initProcFiles(syncFs, processInfo);
   }
 }

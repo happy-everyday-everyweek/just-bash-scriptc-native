@@ -8,7 +8,7 @@
  * - [...] (character classes)
  */
 
-import type { IFileSystem } from "../fs/interface.js";
+import type { DirentEntry, IFileSystem } from "../fs/interface.js";
 import { ExecutionLimitError } from "../interpreter/errors.js";
 import { createUserRegex, type RegexLike } from "../regex/index.js";
 import { DEFAULT_BATCH_SIZE } from "../utils/constants.js";
@@ -88,7 +88,8 @@ export class GlobExpander {
    * Throws an error if the limit is exceeded.
    */
   private checkOpsLimit(): void {
-    if (++this.ops.count > this.maxOps) {
+    this.ops.count += 1;
+    if (this.ops.count > this.maxOps) {
       throw new ExecutionLimitError(
         `Glob operation limit exceeded (${this.maxOps})`,
         "glob_operations",
@@ -378,7 +379,7 @@ export class GlobExpander {
       // Use readdirWithFileTypes if available to avoid stat calls
       if (this.fs.readdirWithFileTypes) {
         this.checkOpsLimit(); // Count readdir operation
-        const entriesWithTypes = await this.fs.readdirWithFileTypes(fsPath);
+        const entriesWithTypes = await this.readdirWithTypes(fsPath);
         const matchPromises: Promise<string[]>[] = [];
 
         // Add . and .. as virtual directory entries if pattern starts with .
@@ -456,7 +457,11 @@ export class GlobExpander {
 
         const allResults = await Promise.all(matchPromises);
         for (const pathList of allResults) {
-          results.push(...pathList);
+          if (pathList !== undefined) {
+            for (const matched of pathList) {
+              results.push(matched);
+            }
+          }
         }
       } else {
         // Fall back to readdir + stat
@@ -529,7 +534,8 @@ export class GlobExpander {
                     }
                     // Entry doesn't exist or can't be stat'd
                   }
-                  return [];
+                  const noMatches: string[] = [];
+                  return noMatches;
                 })(),
               );
             }
@@ -538,7 +544,11 @@ export class GlobExpander {
 
         const allResults = await Promise.all(matchPromises);
         for (const pathList of allResults) {
-          results.push(...pathList);
+          if (pathList !== undefined) {
+            for (const matched of pathList) {
+              results.push(matched);
+            }
+          }
         }
       }
     } catch (error) {
@@ -603,7 +613,7 @@ export class GlobExpander {
       // Get all directories at this level
       this.checkOpsLimit(); // Count readdir operation
       const entriesWithTypes = this.fs.readdirWithFileTypes
-        ? await this.fs.readdirWithFileTypes(fullPath)
+        ? await this.readdirWithTypes(fullPath)
         : null;
 
       if (entriesWithTypes) {
@@ -698,7 +708,7 @@ export class GlobExpander {
       // Use readdirWithFileTypes if available to avoid stat calls
       if (this.fs.readdirWithFileTypes) {
         this.checkOpsLimit(); // Count readdir operation
-        const entriesWithTypes = await this.fs.readdirWithFileTypes(fullPath);
+        const entriesWithTypes = await this.readdirWithTypes(fullPath);
 
         // Separate files and directories
         const files: string[] = [];
@@ -809,9 +819,22 @@ export class GlobExpander {
   /**
    * Convert a glob pattern to a RegExp
    */
+  /**
+   * `readdirWithFileTypes` is optional on IFileSystem, so it is bound to a
+   * local before the call; a filesystem without it yields no entries.
+   */
+  private async readdirWithTypes(path: string): Promise<DirentEntry[]> {
+    const readdir = this.fs.readdirWithFileTypes;
+    if (readdir === undefined) {
+      const none: DirentEntry[] = [];
+      return none;
+    }
+    return readdir(path);
+  }
+
   private patternToRegex(pattern: string): RegexLike {
     const regex = this.patternToRegexStr(pattern);
-    return createUserRegex(`^${regex}$`);
+    return createUserRegex(`^${regex}$`) as unknown as RegexLike;
   }
 
   /**
@@ -835,7 +858,7 @@ export class GlobExpander {
         continue;
       }
 
-      const c = pattern[i];
+      const c = pattern.charAt(i);
 
       // Inside quoted section, all characters are literal (escape regex special chars)
       if (inQuotedSection) {
@@ -852,7 +875,7 @@ export class GlobExpander {
         this.extglob &&
         (c === "@" || c === "*" || c === "+" || c === "?" || c === "!") &&
         i + 1 < pattern.length &&
-        pattern[i + 1] === "("
+        pattern.charAt(i + 1) === "("
       ) {
         // Find the matching closing paren (handle nesting)
         const closeIdx = findMatchingParen(pattern, i + 1);
@@ -940,13 +963,16 @@ export class GlobExpander {
         let classContent = "[";
 
         // Handle negation
-        if (j < pattern.length && (pattern[j] === "^" || pattern[j] === "!")) {
+        if (
+          j < pattern.length &&
+          (pattern.charAt(j) === "^" || pattern.charAt(j) === "!")
+        ) {
           classContent += "^";
           j++;
         }
 
         // Handle ] as first character (literal])
-        if (j < pattern.length && pattern[j] === "]") {
+        if (j < pattern.length && pattern.charAt(j) === "]") {
           classContent += "\\]";
           j++;
         }
@@ -954,12 +980,15 @@ export class GlobExpander {
         // Find the end of the character class first (to check if dash is at end)
         let classEnd = j;
         while (classEnd < pattern.length) {
-          if (pattern[classEnd] === "\\" && classEnd + 1 < pattern.length) {
+          if (
+            pattern.charAt(classEnd) === "\\" &&
+            classEnd + 1 < pattern.length
+          ) {
             classEnd += 2;
             continue;
           }
           if (
-            pattern[classEnd] === "[" &&
+            pattern.charAt(classEnd) === "[" &&
             classEnd + 1 < pattern.length &&
             pattern[classEnd + 1] === ":"
           ) {
@@ -969,7 +998,7 @@ export class GlobExpander {
               continue;
             }
           }
-          if (pattern[classEnd] === "]") {
+          if (pattern.charAt(classEnd) === "]") {
             break;
           }
           classEnd++;
@@ -979,7 +1008,7 @@ export class GlobExpander {
         const classStartPos = j;
 
         // Parse until closing ]
-        while (j < pattern.length && pattern[j] !== "]") {
+        while (j < pattern.length && pattern.charAt(j) !== "]") {
           // Check for POSIX character class [[:name:]]
           if (
             pattern[j] === "[" &&
@@ -1025,7 +1054,7 @@ export class GlobExpander {
         i = j;
       } else if (c === "\\" && i + 1 < pattern.length) {
         // Escaped character - treat next char as literal
-        const nextChar = pattern[i + 1];
+        const nextChar = pattern.charAt(i + 1);
         if (/[.+^${}()|\\*?[\]]/.test(nextChar)) {
           regex += `\\${nextChar}`;
         } else {
@@ -1067,7 +1096,7 @@ export class GlobExpander {
         continue;
       }
 
-      const c = pattern[i];
+      const c = pattern.charAt(i);
 
       // Inside quoted section, all characters count as literal (fixed length 1 each)
       if (inQuotedSection) {
@@ -1080,7 +1109,7 @@ export class GlobExpander {
       if (
         (c === "@" || c === "*" || c === "+" || c === "?" || c === "!") &&
         i + 1 < pattern.length &&
-        pattern[i + 1] === "("
+        pattern.charAt(i + 1) === "("
       ) {
         const closeIdx = findMatchingParen(pattern, i + 1);
         if (closeIdx !== -1) {

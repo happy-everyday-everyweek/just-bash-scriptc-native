@@ -79,12 +79,19 @@ function isFileInit(
 
 export class InMemoryFs implements IFileSystem {
   private data: Map<string, FsEntry> = new Map();
-  private entryIdentities = new WeakMap<FsEntry, string>();
+  /**
+   * Entry identity strings, kept in parallel with the entries they describe.
+   * `WeakMap` has no lowering in a statically compiled build, so identity is
+   * tracked with two arrays instead of a weak registry.
+   */
+  private identityEntries: FsEntry[] = [];
+  private identityValues: string[] = [];
   private nextEntryIdentity = 1;
   private readonly maxTotalBytes: number;
   private retainedBytes = 0;
-  /** Number of directory entries retaining each hard-link-compatible buffer. */
-  private contentReferences = new WeakMap<Uint8Array, number>();
+  /** Reference counts for retained buffers, parallel with the buffers. */
+  private referenceBuffers: Uint8Array[] = [];
+  private referenceCounts: number[] = [];
 
   private materializedContent(entry: FsEntry | undefined): FileContent | null {
     return entry?.type === "file" && "content" in entry ? entry.content : null;
@@ -101,7 +108,7 @@ export class InMemoryFs implements IFileSystem {
     const content = this.materializedContent(entry);
     if (content === null) return 0;
     if (!(content instanceof Uint8Array)) return this.storedByteLength(content);
-    return this.contentReferences.get(content) === 1 ? content.byteLength : 0;
+    return this.referenceCount(content) === 1 ? content.byteLength : 0;
   }
 
   /**
@@ -135,7 +142,7 @@ export class InMemoryFs implements IFileSystem {
     const releasedBytes = this.wouldReleaseBytes(previous);
     const addedBytes =
       nextContent instanceof Uint8Array
-        ? this.contentReferences.has(nextContent)
+        ? this.referenceCount(nextContent) > 0
           ? 0
           : nextContent.byteLength
         : this.storedByteLength(nextContent);
@@ -146,15 +153,10 @@ export class InMemoryFs implements IFileSystem {
     }
 
     if (previousContent instanceof Uint8Array) {
-      const references = this.contentReferences.get(previousContent) ?? 0;
-      if (references <= 1) this.contentReferences.delete(previousContent);
-      else this.contentReferences.set(previousContent, references - 1);
+      this.dropReference(previousContent);
     }
     if (nextContent instanceof Uint8Array) {
-      this.contentReferences.set(
-        nextContent,
-        (this.contentReferences.get(nextContent) ?? 0) + 1,
-      );
+      this.addReference(nextContent);
     }
     this.retainedBytes += addedBytes - releasedBytes;
     this.data.set(path, entry);
@@ -166,9 +168,7 @@ export class InMemoryFs implements IFileSystem {
     const content = this.materializedContent(entry);
     const releasedBytes = this.wouldReleaseBytes(entry);
     if (content instanceof Uint8Array) {
-      const references = this.contentReferences.get(content) ?? 0;
-      if (references <= 1) this.contentReferences.delete(content);
-      else this.contentReferences.set(content, references - 1);
+      this.dropReference(content);
     }
     this.retainedBytes -= releasedBytes;
     return this.data.delete(path);
@@ -193,12 +193,49 @@ export class InMemoryFs implements IFileSystem {
   }
 
   private identityFor(entry: FsEntry): string {
-    let identity = this.entryIdentities.get(entry);
-    if (!identity) {
-      identity = `memfs:${this.nextEntryIdentity++}`;
-      this.entryIdentities.set(entry, identity);
+    for (let i = 0; i < this.identityEntries.length; i += 1) {
+      if (this.identityEntries[i] === entry) return this.identityValues[i];
     }
+    const identity = `memfs:${this.nextEntryIdentity}`;
+    this.nextEntryIdentity += 1;
+    this.identityEntries.push(entry);
+    this.identityValues.push(identity);
     return identity;
+  }
+
+  /** Index of a retained buffer, or -1 when it is not retained. */
+  private referenceIndexOf(content: Uint8Array): number {
+    for (let i = 0; i < this.referenceBuffers.length; i += 1) {
+      if (this.referenceBuffers[i] === content) return i;
+    }
+    return -1;
+  }
+
+  private referenceCount(content: Uint8Array): number {
+    const index = this.referenceIndexOf(content);
+    return index === -1 ? 0 : this.referenceCounts[index];
+  }
+
+  private addReference(content: Uint8Array): void {
+    const index = this.referenceIndexOf(content);
+    if (index === -1) {
+      this.referenceBuffers.push(content);
+      this.referenceCounts.push(1);
+      return;
+    }
+    this.referenceCounts[index] += 1;
+  }
+
+  private dropReference(content: Uint8Array): void {
+    const index = this.referenceIndexOf(content);
+    if (index === -1) return;
+    const remaining = this.referenceCounts[index] - 1;
+    if (remaining <= 0) {
+      this.referenceBuffers.splice(index, 1);
+      this.referenceCounts.splice(index, 1);
+      return;
+    }
+    this.referenceCounts[index] = remaining;
   }
 
   constructor(initialFiles?: InitialFiles, options: InMemoryFsOptions = {}) {
@@ -903,7 +940,8 @@ export class InMemoryFs implements IFileSystem {
       mode: resolved.mode,
       mtime: resolved.mtime,
     };
-    this.entryIdentities.set(linkedEntry, this.identityFor(resolved));
+    this.identityEntries.push(linkedEntry);
+    this.identityValues.push(this.identityFor(resolved));
     this.setEntry(newNorm, linkedEntry);
   }
 

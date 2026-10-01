@@ -136,7 +136,7 @@ function decodeUtf8Bytes(buffer: Uint8Array): string {
         i += 1;
       } else {
         const cp = ((b0 & 0x1f) << 6) | (buffer[i + 1] & 0x3f);
-        out += String.fromCodePoint(cp);
+        out += codePointToString(cp);
         i += 2;
       }
     } else if (b0 < 0xf0) {
@@ -148,7 +148,7 @@ function decodeUtf8Bytes(buffer: Uint8Array): string {
           ((b0 & 0x0f) << 12) |
           ((buffer[i + 1] & 0x3f) << 6) |
           (buffer[i + 2] & 0x3f);
-        out += String.fromCodePoint(cp);
+        out += codePointToString(cp);
         i += 3;
       }
     } else {
@@ -161,10 +161,23 @@ function decodeUtf8Bytes(buffer: Uint8Array): string {
           ((buffer[i + 1] & 0x3f) << 12) |
           ((buffer[i + 2] & 0x3f) << 6) |
           (buffer[i + 3] & 0x3f);
-        out += String.fromCodePoint(cp);
+        out += codePointToString(cp);
         i += 4;
       }
     }
   }
   return out;
+}
+
+/**
+ * Encode a code point as UTF-16 code units (`String.fromCodePoint` has no
+ * scriptc lowering, so surrogate pairs are built by hand).
+ */
+function codePointToString(cp: number): string {
+  if (cp <= 0xffff) return String.fromCharCode(cp);
+  const offset = cp - 0x10000;
+  return (
+    String.fromCharCode(0xd800 + (offset >> 10)) +
+    String.fromCharCode(0xdc00 + (offset & 0x3ff))
+  );
 }

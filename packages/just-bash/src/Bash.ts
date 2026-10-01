@@ -347,22 +347,20 @@ export class Bash {
   constructor(options: BashOptions = {}) {
     // Resolve limits before constructing the default filesystem so retained
     // virtual storage follows the same host-selected policy as execution.
-    this.limits = resolveLimits(
-      {
-        ...options.executionLimits,
-        // Support deprecated individual options (they override executionLimits if set)
-        ...(options.maxCallDepth !== undefined
-          ? { maxCallDepth: options.maxCallDepth }
-          : {}),
-        ...(options.maxCommandCount !== undefined
-          ? { maxCommandCount: options.maxCommandCount }
-          : {}),
-        ...(options.maxLoopIterations !== undefined
-          ? { maxLoopIterations: options.maxLoopIterations }
-          : {}),
-      },
-      options.executionLimitProfile,
-    );
+    // Support deprecated individual options (they override executionLimits).
+    // Written as assignments rather than a second spread: the desugar keeps one
+    // entry per key, so re-spreading the same names is rejected.
+    const limitOptions = { ...options.executionLimits };
+    if (options.maxCallDepth !== undefined) {
+      limitOptions.maxCallDepth = options.maxCallDepth;
+    }
+    if (options.maxCommandCount !== undefined) {
+      limitOptions.maxCommandCount = options.maxCommandCount;
+    }
+    if (options.maxLoopIterations !== undefined) {
+      limitOptions.maxLoopIterations = options.maxLoopIterations;
+    }
+    this.limits = resolveLimits(limitOptions, options.executionLimitProfile);
     const fs =
       options.fs ??
       new InMemoryFs(options.files, {
@@ -521,13 +519,13 @@ export class Bash {
     }
 
     for (const cmd of createLazyCommands(options.commands)) {
-      this.registerBundledCommand(cmd as unknown as Command);
+      this.registerBundledCommand(cmd);
     }
 
     // Register network commands when fetch or network is configured
     if (options.fetch || options.network) {
       for (const cmd of createNetworkCommands()) {
-        this.registerBundledCommand(cmd as unknown as Command);
+        this.registerBundledCommand(cmd);
       }
     }
 
@@ -535,7 +533,7 @@ export class Bash {
     // Python introduces additional security surface (arbitrary code execution)
     if (options.python) {
       for (const cmd of createPythonCommands()) {
-        this.registerBundledCommand(cmd as unknown as Command);
+        this.registerBundledCommand(cmd);
       }
     }
 
@@ -548,7 +546,7 @@ export class Bash {
     // is provided (the hook is meaningless without js-exec).
     if (options.javascript || jsConfig.invokeTool) {
       for (const cmd of createJavaScriptCommands()) {
-        this.registerBundledCommand(cmd as unknown as Command);
+        this.registerBundledCommand(cmd);
       }
       if (jsConfig.bootstrap) {
         this.jsBootstrapCode = jsConfig.bootstrap;
@@ -575,8 +573,10 @@ export class Bash {
     this.registerCommandInternal(command, true);
   }
 
-  private registerBundledCommand(command: Command): void {
-    this.registerCommandInternal(command, false);
+  private registerBundledCommand(command: RuntimeCommand): void {
+    // Bundled commands arrive as RuntimeCommand values (lazy command records);
+    // the internal registrar works from the Command view of the same object.
+    this.registerCommandInternal(command as unknown as Command, false);
   }
 
   private registerCommandInternal(
@@ -782,7 +782,7 @@ export class Bash {
         cwd: newCwd,
         previousDir: effectiveOptions.env?.OLDPWD ?? this.state.previousDir,
         // Deep copy mutable objects to prevent interference
-        functions: new Map(this.state.functions),
+        functions: copyMap(this.state.functions),
         localScopes: [...this.state.localScopes],
         options: { ...this.state.options },
         // Share hashTable reference - it should persist across exec calls

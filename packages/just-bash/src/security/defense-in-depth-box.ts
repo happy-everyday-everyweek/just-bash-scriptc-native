@@ -97,8 +97,11 @@ type NodeModuleApi = {
   register?: (specifier: string) => void;
 };
 
-let AsyncLocalStorageClass: (new <T>() => AsyncLocalStorageType<T>) | null =
-  null;
+/**
+ * A statically compiled build has no `node:async_hooks`, so no context store is
+ * ever created. The guards below therefore all take their fallback path and run
+ * the callback directly.
+ */
 let nodeModuleApi: NodeModuleApi | null = null;
 let nodeModuleClass: NodeModuleClass | null = null;
 
@@ -109,9 +112,6 @@ let nodeModuleClass: NodeModuleClass | null = null;
 // inert shim and dead-code-eliminates this branch via __BROWSER__.
 if (!IS_BROWSER) {
   try {
-    AsyncLocalStorageClass = nodeAsyncHooks.AsyncLocalStorage as
-      | (new <T>() => AsyncLocalStorageType<T>)
-      | null;
     nodeModuleApi = nodeModule as unknown as NodeModuleApi;
     nodeModuleClass = nodeModuleApi.Module ?? nodeModuleApi.default ?? null;
   } catch {
@@ -163,10 +163,7 @@ interface DefenseContext {
  */
 const trustedExecutionDepth = new Map<string, number>();
 
-const executionContext: AsyncLocalStorageType<DefenseContext> | null =
-  !IS_BROWSER && AsyncLocalStorageClass
-    ? new AsyncLocalStorageClass<DefenseContext>()
-    : null;
+let executionContext: AsyncLocalStorageType<DefenseContext> | null = null;
 
 // Maximum number of violations to store (prevent memory issues)
 const MAX_STORED_VIOLATIONS = 1000;
@@ -296,7 +293,7 @@ export class DefenseInDepthBox {
   private originalDescriptors: Array<{
     target: object;
     prop: string;
-    descriptor: PropertyDescriptor | undefined;
+    descriptor: unknown;
   }> = [];
   /**
    * Descriptors made temporarily read-only while the shared host realm is
@@ -727,68 +724,23 @@ export class DefenseInDepthBox {
    * spawned inside the callback inherit the trusted state.
    */
   static runTrusted<T>(fn: () => T): T {
-    if (!executionContext) return fn();
-    const current = executionContext.getStore();
-    if (!current) return fn();
-    const { executionId } = current;
-    return executionContext.run(
-      { ...current, trusted: true, forceUntrusted: false },
-      () => {
-        DefenseInDepthBox.enterTrustedScope(executionId);
-        try {
-          const result = fn();
-          if (
-            typeof result === "object" &&
-            result !== null &&
-            "finally" in result &&
-            typeof result.finally === "function"
-          ) {
-            return result.finally(() => {
-              DefenseInDepthBox.leaveTrustedScope(executionId);
-            });
-          }
-          DefenseInDepthBox.leaveTrustedScope(executionId);
-          return result;
-        } catch (error) {
-          DefenseInDepthBox.leaveTrustedScope(executionId);
-          throw error;
-        }
-      },
-    );
+    // Without AsyncLocalStorage there is no ambient context to scope trust to,
+    // so the callback runs directly.
+    return fn();
   }
 
   /**
    * Async version of runTrusted.
    */
   static async runTrustedAsync<T>(fn: () => Promise<T>): Promise<T> {
-    if (!executionContext) return fn();
-    const current = executionContext.getStore();
-    if (!current) return fn();
-    const { executionId } = current;
-    return executionContext.run(
-      { ...current, trusted: true, forceUntrusted: false },
-      async () => {
-        DefenseInDepthBox.enterTrustedScope(executionId);
-        try {
-          return await fn();
-        } finally {
-          DefenseInDepthBox.leaveTrustedScope(executionId);
-        }
-      },
-    );
+    return fn();
   }
 
   /**
    * Restore blocking for an untrusted operation nested inside trusted host code.
    */
   static async runUntrustedAsync<T>(fn: () => Promise<T>): Promise<T> {
-    if (!executionContext) return fn();
-    const current = executionContext.getStore();
-    if (!current) return fn();
-    return executionContext.run(
-      { ...current, trusted: false, forceUntrusted: true },
-      fn,
-    );
+    return fn();
   }
 
   /**
@@ -2343,8 +2295,12 @@ export class DefenseInDepthBox {
       const { target, prop, descriptor } = this.originalDescriptors[i];
 
       try {
-        if (descriptor) {
-          Object.defineProperty(target, prop, descriptor);
+        if (descriptor !== undefined && descriptor !== null) {
+          Object.defineProperty(
+            target,
+            prop,
+            descriptor as unknown as PropertyDescriptor,
+          );
         } else {
           // Property didn't exist originally, delete it
           delete (target as Record<string, unknown>)[prop];
@@ -2371,42 +2327,14 @@ export class DefenseInDepthBox {
 export async function runTrustedTask(
   fn: () => Promise<ExecResult>,
 ): Promise<ExecResult> {
-  if (!executionContext) return fn();
-  const current = executionContext.getStore();
-  if (!current) return fn();
-  const { executionId } = current;
-  return executionContext.run(
-    { ...current, trusted: true, forceUntrusted: false },
-    async () => {
-      const depth = trustedExecutionDepth.get(executionId) ?? 0;
-      trustedExecutionDepth.set(executionId, depth + 1);
-      try {
-        return await fn();
-      } finally {
-        const now = trustedExecutionDepth.get(executionId);
-        if (now !== undefined) {
-          if (now <= 1) {
-            trustedExecutionDepth.delete(executionId);
-          } else {
-            trustedExecutionDepth.set(executionId, now - 1);
-          }
-        }
-      }
-    },
-  );
+  return fn();
 }
 
 /** ExecResult-typed twin of `runUntrustedAsync`. */
 export async function runUntrustedTask(
   fn: () => Promise<ExecResult>,
 ): Promise<ExecResult> {
-  if (!executionContext) return fn();
-  const current = executionContext.getStore();
-  if (!current) return fn();
-  return executionContext.run(
-    { ...current, trusted: false, forceUntrusted: true },
-    fn,
-  );
+  return fn();
 }
 
 /**
