@@ -47,8 +47,21 @@ import type { InterpreterContext } from "../types.js";
  * sets). Declared structurally because the lib `Iterable` type has no static
  * lowering.
  */
-interface StringValues {
-  forEach(callback: (value: string) => void): void;
+/**
+ * Values this file iterates (arrays or sets).
+ *
+ * Joined through a structural cast because the lib `Iterable` type has no
+ * static lowering and a record slot cannot width-coerce into `string[]`.
+ */
+function toValues(values: unknown): string[] {
+  const out: string[] = [];
+  const iterable = values as {
+    forEach(callback: (value: string) => void): void;
+  };
+  iterable.forEach((value) => {
+    out.push(value);
+  });
+  return out;
 }
 
 /**
@@ -375,8 +388,8 @@ export async function handleCompgen(
   const completionSet = new Set<string>();
   const remainingCompletionCapacity = (): number =>
     ctx.limits.maxArrayElements - completions.length;
-  const appendCompletions = (values: StringValues): void => {
-    values.forEach((value) => {
+  const appendCompletions = (values: unknown): void => {
+    for (const value of toValues(values)) {
       if (completions.length >= ctx.limits.maxArrayElements) {
         throw new ExecutionLimitError(
           `compgen: completion element limit exceeded (${ctx.limits.maxArrayElements})`,
@@ -392,7 +405,7 @@ export async function handleCompgen(
       ctx.executionScope.consumeWork(1, "compgen completion");
       completions.push(value);
       completionSet.add(value);
-    });
+    }
   };
 
   // Handle -o dirnames (only show directories)
