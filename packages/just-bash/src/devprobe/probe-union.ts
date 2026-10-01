@@ -16,8 +16,9 @@ export function pcAssign(): number {
   const o: { x: number } = Object.assign({}, { x: 1 });
   return o.x;
 }
-export function pcRadix(): string {
-  return (255).toString(16);
+export function pcRadix(): number {
+  const s = (255).toString(16);
+  return s.length;
 }
 export function pcNested(): number {
   const o = { a: { b: 1 as number | undefined } };
