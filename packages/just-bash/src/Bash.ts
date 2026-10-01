@@ -331,7 +331,8 @@ export class Bash {
     abortSignal: AbortSignal,
   ) => Promise<string>;
   // biome-ignore lint/suspicious/noExplicitAny: type-erased plugin storage for untyped API
-  private transformPlugins: TransformPlugin<any>[] = [];
+  private transformPlugins: TransformPlugin<Record<string, unknown>>[] =
+    [];
 
   // Interpreter state (shared with interpreter instances)
   private state: InterpreterState;
@@ -1003,7 +1004,9 @@ export class Bash {
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: accepts any plugin for untyped API
-  registerTransformPlugin(plugin: TransformPlugin<any>): void {
+  registerTransformPlugin(
+    plugin: TransformPlugin<Record<string, unknown>>,
+  ): void {
     this.transformPlugins.push(plugin);
   }
 
@@ -1155,7 +1158,57 @@ function normalizeScript(script: string): string {
 /**
  * Strict UTF-8 decoder that throws on invalid byte sequences.
  */
-const strictUtf8Decoder = new TextDecoder("utf-8", { fatal: true });
+/**
+ * Decode bytes as strict UTF-8, throwing on malformed input.
+ *
+ * `TextDecoder` has no static lowering, so the decode is written by hand;
+ * the throw is what `strictUtf8ToUtf8`'s fallback relies on.
+ */
+function decodeStrictUtf8(bytes: Uint8Array): string {
+  let out = "";
+  let i = 0;
+  while (i < bytes.length) {
+    const b0 = bytes[i];
+    if (b0 < 0x80) {
+      out += String.fromCharCode(b0);
+      i++;
+      continue;
+    }
+    let needed = 0;
+    let code = 0;
+    if (b0 >= 0xc2 && b0 <= 0xdf) {
+      needed = 1;
+      code = b0 & 0x1f;
+    } else if (b0 >= 0xe0 && b0 <= 0xef) {
+      needed = 2;
+      code = b0 & 0x0f;
+    } else if (b0 >= 0xf0 && b0 <= 0xf4) {
+      needed = 3;
+      code = b0 & 0x07;
+    } else {
+      throw new Error("Invalid UTF-8: bad lead byte");
+    }
+    if (i + needed >= bytes.length) {
+      throw new Error("Invalid UTF-8: truncated sequence");
+    }
+    for (let k = 1; k <= needed; k++) {
+      const bb = bytes[i + k];
+      if ((bb & 0xc0) !== 0x80) {
+        throw new Error("Invalid UTF-8: bad continuation byte");
+      }
+      code = code * 64 + (bb & 0x3f);
+    }
+    i += needed + 1;
+    if (code > 0xffff) {
+      const v = code - 0x10000;
+      out += String.fromCharCode(0xd800 + Math.floor(v / 1024));
+      out += String.fromCharCode(0xdc00 + (v % 1024));
+    } else {
+      out += String.fromCharCode(code);
+    }
+  }
+  return out;
+}
 
 /**
  * Decode a binary string (latin1, where each char = one byte) to UTF-8.
@@ -1197,7 +1250,7 @@ function decodeBinaryToUtf8(s: string): string {
 
   // Try UTF-8 decoding; fall back to binary string for non-UTF-8 data
   try {
-    return strictUtf8Decoder.decode(bytes);
+    return decodeStrictUtf8(bytes);
   } catch {
     return s;
   }

@@ -68,7 +68,7 @@ const textEncoder = new TextEncoder();
  * Type guard to check if a value is a FileInit object
  */
 function isFileInit(
-  value: FileContent | FileInit | LazyFileProvider,
+  value: FileContent | FileInit,
 ): value is FileInit {
   return (
     typeof value === "object" &&

@@ -309,10 +309,7 @@ export type LazyFileProvider = () =>
 /**
  * Initial files can be simple content, extended options with metadata, or lazy providers
  */
-export type InitialFiles = Record<
-  string,
-  FileContent | FileInit | LazyFileProvider
->;
+export type InitialFiles = Record<string, FileContent | FileInit>;
 
 /**
  * Factory function type for creating filesystem instances
