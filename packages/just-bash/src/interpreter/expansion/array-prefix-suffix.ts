@@ -69,10 +69,14 @@ export async function handleArrayDefaultValue(
   }
 
   const paramPart = dqPart.parts[0];
-  const op = paramPart.operation as
-    | { type: "DefaultValue"; word?: WordNode; checkEmpty?: boolean }
-    | { type: "UseAlternative"; word?: WordNode; checkEmpty?: boolean }
-    | { type: "AssignDefault"; word?: WordNode; checkEmpty?: boolean };
+  // Cast through `unknown`: a union of records with optional members cannot
+  // be re-tagged in one step, so the operation is read as one record shape.
+  const opRaw = paramPart.operation as unknown;
+  const op = opRaw as {
+    type: string;
+    word?: WordNode;
+    checkEmpty?: boolean;
+  };
 
   // Check if the outer parameter is an array subscript
   const arrayMatch = paramPart.parameter.match(

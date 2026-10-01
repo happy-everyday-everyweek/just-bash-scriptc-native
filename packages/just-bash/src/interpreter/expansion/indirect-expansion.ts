@@ -383,9 +383,13 @@ export async function handleIndirectInAlternative(
   }
 
   const paramPart = wordParts[0];
-  const op = paramPart.operation as
-    | { type: "UseAlternative"; word?: WordNode; checkEmpty?: boolean }
-    | { type: "DefaultValue"; word?: WordNode; checkEmpty?: boolean };
+  // Cast through `unknown` for the same reason as array-prefix-suffix.
+  const opRaw2 = paramPart.operation as unknown;
+  const op = opRaw2 as {
+    type: string;
+    word?: WordNode;
+    checkEmpty?: boolean;
+  };
   const opWord = op?.word;
 
   // Check if the inner word is a quoted indirect expansion to an array
