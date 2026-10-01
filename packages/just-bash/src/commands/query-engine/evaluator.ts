@@ -81,32 +81,60 @@ const DEFAULT_MAX_JQ_DEPTH = 2000;
  * Maps jq function names to their JavaScript Math implementations.
  * Uses Map to avoid prototype pollution (e.g., if someone tries to call "constructor" as a function).
  */
-const SIMPLE_MATH_FUNCTIONS = new Map<string, (x: number) => number>([
-  ["floor", Math.floor],
-  ["ceil", Math.ceil],
-  ["round", Math.round],
-  ["sqrt", Math.sqrt],
-  ["log", Math.log],
-  ["log10", Math.log10],
-  ["log2", Math.log2],
-  ["exp", Math.exp],
-  ["sin", Math.sin],
-  ["cos", Math.cos],
-  ["tan", Math.tan],
-  ["asin", Math.asin],
-  ["acos", Math.acos],
-  ["atan", Math.atan],
-  ["sinh", Math.sinh],
-  ["cosh", Math.cosh],
-  ["tanh", Math.tanh],
-  ["asinh", Math.asinh],
-  ["acosh", Math.acosh],
-  ["atanh", Math.atanh],
-  ["cbrt", Math.cbrt],
-  ["expm1", Math.expm1],
-  ["log1p", Math.log1p],
-  ["trunc", Math.trunc],
-]);
+function applySimpleMath(name: string, x: number): number | undefined {
+  switch (name) {
+    case "floor": return Math.floor(x);
+    case "ceil": return Math.ceil(x);
+    case "round": return Math.round(x);
+    case "sqrt": return Math.sqrt(x);
+    case "log": return Math.log(x);
+    case "log10": return Math.log10(x);
+    case "log2": return Math.log2(x);
+    case "exp": return Math.exp(x);
+    case "sin": return Math.sin(x);
+    case "cos": return Math.cos(x);
+    case "tan": return Math.tan(x);
+    case "asin": return Math.asin(x);
+    case "acos": return Math.acos(x);
+    case "atan": return Math.atan(x);
+    case "sinh": return Math.sinh(x);
+    case "cosh": return Math.cosh(x);
+    case "tanh": return Math.tanh(x);
+    case "asinh": return Math.asinh(x);
+    case "acosh": return Math.acosh(x);
+    case "atanh": return Math.atanh(x);
+    case "cbrt": return Math.cbrt(x);
+    case "expm1": return Math.expm1(x);
+    case "log1p": return Math.log1p(x);
+    case "trunc": return Math.trunc(x);
+    default: return undefined;
+  }
+}
+
+class VarStore {
+  readonly keys: string[] = [];
+  readonly vals: QueryValue[] = [];
+  get(k: string): QueryValue | undefined {
+    const i = this.keys.indexOf(k);
+    return i === -1 ? undefined : this.vals[i];
+  }
+  set(k: string, v: QueryValue): void {
+    const i = this.keys.indexOf(k);
+    if (i === -1) {
+      this.keys.push(k);
+      this.vals.push(v);
+    } else {
+      this.vals[i] = v;
+    }
+  }
+  clone(): VarStore {
+    const copy = new VarStore();
+    for (let i = 0; i < this.keys.length; i++) {
+      copy.set(this.keys[i], this.vals[i]);
+    }
+    return copy;
+  }
+}
 
 export interface QueryExecutionLimits {
   maxIterations?: number;
@@ -119,7 +147,7 @@ export interface QueryExecutionLimits {
 export type ResolvedQueryExecutionLimits = Required<QueryExecutionLimits>;
 
 export interface EvalContext {
-  vars: Map<string, QueryValue>;
+  vars: VarStore;
   limits: ResolvedQueryExecutionLimits;
   env?: Record<string, string>;
   /** Named arguments (bare names) exposed via $ARGS.named */
@@ -214,7 +242,7 @@ function boundedFlatMap(
 }
 
 function createContext(options?: EvaluateOptions): EvalContext {
-  const vars = new Map<string, QueryValue>();
+  const vars = new VarStore();
   if (options?.namedArgNames && options.namedArgValues) {
     // Seed $NAME variables; jq stores variable references with the $ prefix.
     const seedNames = options.namedArgNames;
@@ -251,7 +279,7 @@ function withVar(
   name: string,
   value: QueryValue,
 ): EvalContext {
-  const newVars = new Map(ctx.vars);
+  const newVars = ctx.vars.clone();
   newVars.set(name, value);
   return {
     vars: newVars,
@@ -1773,9 +1801,12 @@ function evalBuiltin(
   ctx: EvalContext,
 ): QueryValue[] {
   // Handle simple single-argument math functions via lookup table
-  const simpleMathFn = SIMPLE_MATH_FUNCTIONS.get(name);
-  if (simpleMathFn) {
-    if (typeof value === "number") return [simpleMathFn(value)];
+  const simpleMathProbe = applySimpleMath(name, Number.NaN);
+  if (simpleMathProbe !== undefined) {
+    if (typeof value === "number") {
+      const simpleMathResult = applySimpleMath(name, value);
+      if (simpleMathResult !== undefined) return [simpleMathResult];
+    }
     return [null];
   }
 
