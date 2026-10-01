@@ -69,12 +69,7 @@ export function parseArgs<T extends Record<string, ArgDef>>(
   args: string[],
   defs: T,
 ): ParseResult<T> {
-  const core = parseArgsCore(cmdName, args, defs);
-  if (core.ok) {
-    const flags = core.result.flags as unknown as ParsedArgs<T>["flags"];
-    return { ok: true, result: { flags, positional: core.result.positional } };
-  }
-  return { ok: false, error: core.error };
+  return parseArgsCore(cmdName, args, defs) as unknown as ParseResult<T>;
 }
 
 type ParsedFlagsRecord = Record<string, boolean | string | number | undefined>;

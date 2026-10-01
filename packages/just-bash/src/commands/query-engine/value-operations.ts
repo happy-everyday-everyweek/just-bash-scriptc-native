@@ -137,11 +137,39 @@ export function getValueDepth(value: QueryValue, maxCheck = 3000): number {
   // A global "seen" set mistakes ordinary sharing (such as `[input, input]`)
   // for a cycle. Track the active DFS path and memoize completed subgraphs so
   // valid DAGs retain their real depth while actual cycles still fail closed.
-  const state = new Map<object, "visiting" | "done">();
-  const depths = new Map<object, number>();
+  const stateKeys: object[] = [];
+  const stateVals: string[] = [];
+  const stateGet = (k: object): string | undefined => {
+    const i = stateKeys.indexOf(k);
+    return i === -1 ? undefined : stateVals[i];
+  };
+  const stateSet = (k: object, v: string): void => {
+    const i = stateKeys.indexOf(k);
+    if (i === -1) {
+      stateKeys.push(k);
+      stateVals.push(v);
+    } else {
+      stateVals[i] = v;
+    }
+  };
+  const depthKeys: object[] = [];
+  const depthVals: number[] = [];
+  const depthsGet = (k: object): number | undefined => {
+    const i = depthKeys.indexOf(k);
+    return i === -1 ? undefined : depthVals[i];
+  };
+  const depthsSet = (k: object, v: number): void => {
+    const i = depthKeys.indexOf(k);
+    if (i === -1) {
+      depthKeys.push(k);
+      depthVals.push(v);
+    } else {
+      depthVals[i] = v;
+    }
+  };
   const root = value as QueryValue[] | Record<string, QueryValue>;
   const stack: DepthFrame[] = [createFrame(root, 1)];
-  state.set(root, "visiting");
+  stateSet(root, "visiting");
 
   while (stack.length > 0) {
     const frame = stack[stack.length - 1];
@@ -149,10 +177,10 @@ export function getValueDepth(value: QueryValue, maxCheck = 3000): number {
       const child = nextChild(frame);
       if (child === null || typeof child !== "object") continue;
 
-      const childState = state.get(child);
+      const childState = stateGet(child);
       if (childState === "visiting") return maxCheck;
       if (childState === "done") {
-        const childDepth = depths.get(child) ?? 0;
+        const childDepth = depthsGet(child) ?? 0;
         if (frame.pathDepth + childDepth >= maxCheck) return maxCheck;
         frame.maxChildDepth = Math.max(frame.maxChildDepth, childDepth);
         continue;
@@ -161,14 +189,14 @@ export function getValueDepth(value: QueryValue, maxCheck = 3000): number {
       const childPathDepth = frame.pathDepth + 1;
       if (childPathDepth >= maxCheck) return maxCheck;
       const childContainer = child as QueryValue[] | Record<string, QueryValue>;
-      state.set(child, "visiting");
+      stateSet(child, "visiting");
       stack.push(createFrame(childContainer, childPathDepth));
       continue;
     }
 
     const depth = frame.maxChildDepth + 1;
-    depths.set(frame.value, depth);
-    state.set(frame.value, "done");
+    depthsSet(frame.value, depth);
+    stateSet(frame.value, "done");
     stack.pop();
     const parent = stack.at(-1);
     if (parent) {
