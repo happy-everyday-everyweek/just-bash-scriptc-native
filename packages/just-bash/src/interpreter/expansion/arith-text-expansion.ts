@@ -162,7 +162,7 @@ export async function expandSubscriptForAssocArray(
             depth++;
           } else if (inner.charAt(j) === "(") {
             depth++;
-          } else if (inner[j] === ")") {
+          } else if (inner.charAt(j) === ")") {
             depth--;
           }
           j++;
