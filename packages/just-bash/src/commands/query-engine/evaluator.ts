@@ -143,6 +143,45 @@ export class VarStore {
   }
 }
 
+export class FuncStore {
+  readonly keys: string[] = [];
+  readonly vals: UserFuncRecord[] = [];
+  get(k: string): UserFuncRecord | undefined {
+    const i = this.keys.indexOf(k);
+    return i === -1 ? undefined : this.vals[i];
+  }
+  set(k: string, v: UserFuncRecord): void {
+    const i = this.keys.indexOf(k);
+    if (i === -1) {
+      this.keys.push(k);
+      this.vals.push(v);
+    } else {
+      this.vals[i] = v;
+    }
+  }
+  has(k: string): boolean {
+    return this.keys.indexOf(k) !== -1;
+  }
+  clone(): FuncStore {
+    const copy = new FuncStore();
+    for (let i = 0; i < this.keys.length; i++) {
+      copy.set(this.keys[i], this.vals[i]);
+    }
+    return copy;
+  }
+}
+
+function pushLabel(labels: string[] | undefined, name: string): string[] {
+  const out: string[] = [];
+  if (labels) {
+    for (let i = 0; i < labels.length; i++) {
+      out.push(labels[i]);
+    }
+  }
+  out.push(name);
+  return out;
+}
+
 export interface QueryExecutionLimits {
   maxIterations?: number;
   maxDepth?: number;
@@ -174,8 +213,8 @@ export interface EvalContext {
   root?: QueryValue;
   /** Current path from root for parent navigation */
   currentPath?: (string | number)[];
-  funcs?: Map<string, UserFuncRecord>;
-  labels?: Set<string>;
+  funcs?: FuncStore;
+  labels?: string[];
   /** Feature coverage writer for fuzzing instrumentation */
   coverage?: FeatureCoverageWriter;
   /** Shared across every recursive evaluation and builtin invocation. */
@@ -1076,7 +1115,7 @@ function evaluateNode(
       try {
         return evaluate(value, ast.body, {
           ...ctx,
-          labels: new Set([...(ctx.labels ?? []), ast.name]),
+          labels: pushLabel(ctx.labels, ast.name),
         });
       } catch (e) {
         if (e instanceof BreakError && e.label === ast.name) {
@@ -1094,15 +1133,15 @@ function evaluateNode(
       // Register the function in context and evaluate the body
       // Functions are keyed by name/arity to allow overloading (e.g., def f: ...; def f(a): ...)
       // Store closure (current funcs map) for lexical scoping
-      const newFuncs = new Map<string, UserFuncRecord>(ctx.funcs ?? []);
+      const newFuncs = ctx.funcs ? ctx.funcs.clone() : new FuncStore();
       const funcKey = `${ast.name}/${ast.params.length}`;
       // Capture the current funcs map as the closure for this function
       const snapKeys: string[] = [];
       const snapVals: UserFuncRecord[] = [];
       if (ctx.funcs) {
-        for (const [ck, cv] of ctx.funcs) {
-          snapKeys.push(ck);
-          snapVals.push(cv);
+        for (let i = 0; i < ctx.funcs.keys.length; i++) {
+          snapKeys.push(ctx.funcs.keys[i]);
+          snapVals.push(ctx.funcs.vals[i]);
         }
       }
       newFuncs.set(funcKey, {
@@ -2118,7 +2157,7 @@ function evalBuiltin(
     default: {
       // Check for user-defined function by name/arity
       const funcKey = `${name}/${args.length}`;
-      const userFunc = ctx.funcs?.get(funcKey);
+      const userFunc = ctx.funcs ? ctx.funcs.get(funcKey) : undefined;
       if (userFunc) {
         // User-defined function: bind parameters
         // In jq, parameters are "filters" that can produce multiple values.
@@ -2126,7 +2165,7 @@ function evalBuiltin(
         //
         // Use the function's closure for lexical scoping, not the current context's funcs.
         // This ensures that functions capture the scope at definition time.
-        const newFuncs = new Map<string, UserFuncRecord>();
+        const newFuncs = new FuncStore();
         if (userFunc.closureKeys && userFunc.closureVals) {
           const cKeys = userFunc.closureKeys;
           const cVals = userFunc.closureVals;
@@ -2134,8 +2173,8 @@ function evalBuiltin(
             newFuncs.set(cKeys[ci], cVals[ci] as unknown as UserFuncRecord);
           }
         } else if (ctx.funcs) {
-          for (const [bk, bv] of ctx.funcs) {
-            newFuncs.set(bk, bv);
+          for (let i = 0; i < ctx.funcs.keys.length; i++) {
+            newFuncs.set(ctx.funcs.keys[i], ctx.funcs.vals[i]);
           }
         }
         // Also add the current function itself so recursion works

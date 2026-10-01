@@ -1,8 +1,6 @@
 /* just-bash exe-lane entry (dev only, delete after) */
 import { Bash } from "../Bash.js";
-import { runProbes } from "./probe-union.js";
 
-console.log("PROBES=" + runProbes());
 
 async function main(): Promise<void> {
   const bash = new Bash();
