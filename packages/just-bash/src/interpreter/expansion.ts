@@ -502,8 +502,8 @@ function createWordGlobDeps(): WordGlobExpansionDeps {
     expandWordForGlobbing,
     expandWordWithBracesAsync,
     expandWordPartsAsync,
-    expandPart,
-    expandParameterAsync,
+    expandPart: (partCtx, part) => expandPart(partCtx, part),
+    expandParameterAsync: (partCtx, part) => expandParameterAsync(partCtx, part),
     hasBraceExpansion,
     evaluateArithmetic,
     buildIfsCharClassPattern,
@@ -1076,7 +1076,7 @@ async function expandParameterAsync(
         value,
         operation,
         expandWordPartsAsync,
-        expandPart,
+        (partCtx, part) => expandPart(partCtx, part),
       );
       checkStringLength(
         result,
@@ -1124,7 +1124,7 @@ async function expandParameterAsync(
         value,
         isUnset,
         operation,
-        expandParameterAsync,
+        (partCtx, part) => expandParameterAsync(partCtx, part),
         inDoubleQuotes,
       );
 
