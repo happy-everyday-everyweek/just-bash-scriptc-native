@@ -8,7 +8,7 @@ import { mergeToNullPrototype } from "../../../helpers/env.js";
 import { ExecutionLimitError as QueryExecutionLimitError } from "../../../interpreter/errors.js";
 import type { EvalContext } from "../evaluator.js";
 import type { AstNode } from "../parser.js";
-import { isSafeKey, safeSet } from "../safe-object.js";
+import { isSafeKey, safeSet, nullPrototypeMerge } from "../safe-object.js";
 import type { QueryValue } from "../value-operations.js";
 
 type EvalFn = (
@@ -26,6 +26,12 @@ type EvalWithPartialFn = (
 type CompareFn = (a: QueryValue, b: QueryValue) => number;
 type IsTruthyFn = (v: QueryValue) => boolean;
 type ContainsDeepFn = (a: QueryValue, b: QueryValue) => boolean;
+function cloneQArr(src: QueryValue[]): QueryValue[] {
+  const out: QueryValue[] = [];
+  for (let i = 0; i < src.length; i++) out.push(src[i]);
+  return out;
+}
+
 function assertResultCapacity(
   ctx: EvalContext,
   current: number,
@@ -57,12 +63,17 @@ export function evalArrayBuiltin(
 ): QueryValue[] | null {
   switch (name) {
     case "sort":
-      if (Array.isArray(value)) return [[...value].sort(compareJq)];
+      if (Array.isArray(value)) {
+        const sv = cloneQArr(value as QueryValue[]);
+        sv.sort(compareJq);
+        return [sv];
+      }
       return [null];
 
     case "sort_by": {
       if (!Array.isArray(value) || args.length === 0) return [null];
-      const sorted = [...value].sort((a, b) => {
+      const sorted = cloneQArr(value as QueryValue[]);
+      sorted.sort((a, b) => {
         const aKey = evaluate(a, args[0], ctx)[0];
         const bKey = evaluate(b, args[0], ctx)[0];
         return compareJq(aKey, bKey);
@@ -109,65 +120,100 @@ export function evalArrayBuiltin(
 
     case "unique_by": {
       if (!Array.isArray(value) || args.length === 0) return [null];
-      const seen = new Map<string, { item: QueryValue; key: QueryValue }>();
+      const uvKeys2: string[] = [];
+      const uvPairs: { item: QueryValue; key: QueryValue }[] = [];
       for (const item of value) {
         const keyVal = evaluate(item, args[0], ctx)[0];
         const keyStr = JSON.stringify(keyVal);
-        if (!seen.has(keyStr)) {
-          seen.set(keyStr, { item, key: keyVal });
+        if (uvKeys2.indexOf(keyStr) === -1) {
+          uvKeys2.push(keyStr);
+          uvPairs.push({ item, key: keyVal });
         }
       }
       // Sort by key value and return items
-      const entries = [...seen.values()];
-      entries.sort((a, b) => compareJq(a.key, b.key));
-      return [entries.map((e) => e.item)];
+      uvPairs.sort((a, b) => compareJq(a.key, b.key));
+      const outU: QueryValue[] = [];
+      for (let i = 0; i < uvPairs.length; i++) {
+        outU.push(uvPairs[i].item);
+      }
+      return [outU];
     }
 
     case "group_by": {
       if (!Array.isArray(value) || args.length === 0) return [null];
-      const groups = new Map<string, QueryValue[]>();
+      const gbKeys: string[] = [];
+      const gbGroups: QueryValue[][] = [];
       for (const item of value) {
         const key = JSON.stringify(evaluate(item, args[0], ctx)[0]);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)?.push(item);
+        const gi = gbKeys.indexOf(key);
+        if (gi === -1) {
+          gbKeys.push(key);
+          const g0: QueryValue[] = [];
+          g0.push(item);
+          gbGroups.push(g0);
+        } else {
+          gbGroups[gi].push(item);
+        }
       }
-      return [[...groups.values()]];
+      const outGb: QueryValue[] = [];
+      for (let i = 0; i < gbGroups.length; i++) {
+        outGb.push(gbGroups[i]);
+      }
+      return [outGb];
     }
 
     case "max":
       if (Array.isArray(value) && value.length > 0) {
-        return [value.reduce((a, b) => (compareJq(a, b) > 0 ? a : b))];
+        const mv = value as QueryValue[];
+        let bestMax: QueryValue = mv[0];
+        for (let i = 1; i < mv.length; i++) {
+          if (compareJq(mv[i], bestMax) > 0) bestMax = mv[i];
+        }
+        return [bestMax];
       }
       return [null];
 
     case "max_by": {
       if (!Array.isArray(value) || value.length === 0 || args.length === 0)
         return [null];
-      return [
-        value.reduce((a, b) => {
-          const aKey = evaluate(a, args[0], ctx)[0];
-          const bKey = evaluate(b, args[0], ctx)[0];
-          return compareJq(aKey, bKey) > 0 ? a : b;
-        }),
-      ];
+      const mbv = value as QueryValue[];
+      let bestMb: QueryValue = mbv[0];
+      let bestMbKey = evaluate(mbv[0], args[0], ctx)[0];
+      for (let i = 1; i < mbv.length; i++) {
+        const candKey = evaluate(mbv[i], args[0], ctx)[0];
+        if (compareJq(candKey, bestMbKey) > 0) {
+          bestMb = mbv[i];
+          bestMbKey = candKey;
+        }
+      }
+      return [bestMb];
     }
 
     case "min":
       if (Array.isArray(value) && value.length > 0) {
-        return [value.reduce((a, b) => (compareJq(a, b) < 0 ? a : b))];
+        const mnv = value as QueryValue[];
+        let bestMin: QueryValue = mnv[0];
+        for (let i = 1; i < mnv.length; i++) {
+          if (compareJq(mnv[i], bestMin) < 0) bestMin = mnv[i];
+        }
+        return [bestMin];
       }
       return [null];
 
     case "min_by": {
       if (!Array.isArray(value) || value.length === 0 || args.length === 0)
         return [null];
-      return [
-        value.reduce((a, b) => {
-          const aKey = evaluate(a, args[0], ctx)[0];
-          const bKey = evaluate(b, args[0], ctx)[0];
-          return compareJq(aKey, bKey) < 0 ? a : b;
-        }),
-      ];
+      const mnbv = value as QueryValue[];
+      let bestMnb: QueryValue = mnbv[0];
+      let bestMnbKey = evaluate(mnbv[0], args[0], ctx)[0];
+      for (let i = 1; i < mnbv.length; i++) {
+        const candKeyM = evaluate(mnbv[i], args[0], ctx)[0];
+        if (compareJq(candKeyM, bestMnbKey) < 0) {
+          bestMnb = mnbv[i];
+          bestMnbKey = candKeyM;
+        }
+      }
+      return [bestMnb];
     }
 
     case "add": {
@@ -177,19 +223,32 @@ export function evalArrayBuiltin(
         const filtered = arr.filter((x) => x !== null);
         if (filtered.length === 0) return null;
         if (filtered.every((x) => typeof x === "number")) {
-          return filtered.reduce((a, b) => (a as number) + (b as number), 0);
+          let sum = 0;
+          for (let i = 0; i < filtered.length; i++) {
+            sum = sum + (filtered[i] as number);
+          }
+          return sum;
         }
         if (filtered.every((x) => typeof x === "string")) {
           return filtered.join("");
         }
         if (filtered.every((x) => Array.isArray(x))) {
-          return filtered.flat();
+          const flatOut: QueryValue[] = [];
+          for (let i = 0; i < filtered.length; i++) {
+            const sub = filtered[i] as QueryValue[];
+            for (let j = 0; j < sub.length; j++) flatOut.push(sub[j]);
+          }
+          return flatOut;
         }
         if (
           filtered.every((x) => x && typeof x === "object" && !Array.isArray(x))
         ) {
           // Use null-prototype to prevent prototype pollution from user-controlled JSON
-          return mergeToNullPrototype(...(filtered as object[]));
+          let accObj: Record<string, unknown> = {};
+          for (let i = 0; i < filtered.length; i++) {
+            accObj = nullPrototypeMerge(accObj, filtered[i] as object);
+          }
+          return accObj;
         }
         return null;
       };

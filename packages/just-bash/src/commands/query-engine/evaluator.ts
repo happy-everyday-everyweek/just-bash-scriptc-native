@@ -444,7 +444,7 @@ function getValueAtPath(
     if (v && typeof v === "object") {
       if (Array.isArray(v)) {
         if (typeof key === "number") {
-          const avPath = v as QueryValue[];
+          const avPath = v as unknown as QueryValue[];
           v = avPath[key];
         } else {
           return undefined;
@@ -1631,7 +1631,11 @@ function applyDel(
           const arr: QueryValue[] = cloneValueArray(val);
           const i = idx < 0 ? arr.length + idx : idx;
           if (i >= 0 && i < arr.length) {
-            arr.splice(i, 1);
+            const outSp: QueryValue[] = [];
+            for (let j = 0; j < arr.length; j++) {
+              if (j !== i) outSp.push(arr[j]);
+            }
+            return outSp;
           }
           return arr;
         }
@@ -1979,7 +1983,7 @@ function evalBuiltin(
     name,
     args,
     ctx,
-    evaluate,
+    evalCtx,
     evaluateWithPartialResults,
     compareJq,
     isTruthy,

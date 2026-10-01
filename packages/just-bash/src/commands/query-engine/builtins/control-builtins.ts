@@ -48,7 +48,10 @@ export function evalControlBuiltin(
           return [];
         }
       }
-      if (Array.isArray(value) && value.length > 0) return [value[0]];
+      if (Array.isArray(value) && value.length > 0) {
+        const cv1 = value as QueryValue[];
+        return [cv1[0]];
+      }
       return [null];
 
     case "last":
@@ -56,8 +59,10 @@ export function evalControlBuiltin(
         const results = evaluate(value, args[0], ctx);
         return results.length > 0 ? [results[results.length - 1]] : [];
       }
-      if (Array.isArray(value) && value.length > 0)
-        return [value[value.length - 1]];
+      if (Array.isArray(value) && value.length > 0) {
+        const cv2 = value as QueryValue[];
+        return [cv2[cv2.length - 1]];
+      }
       return [null];
 
     case "nth": {
@@ -87,12 +92,13 @@ export function evalControlBuiltin(
         });
       }
       if (Array.isArray(value)) {
+        const cvv = value as QueryValue[];
         return ns.flatMap((nv) => {
           const n = nv as number;
           if (n < 0) {
             throw new Error("nth doesn't support negative indices");
           }
-          return n < value.length ? [value[n]] : [null];
+          return n < cvv.length ? [cvv[n]] : [null];
         });
       }
       return [null];
