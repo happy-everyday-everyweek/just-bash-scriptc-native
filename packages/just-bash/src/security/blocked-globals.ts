@@ -602,9 +602,10 @@ export function getBlockedGlobals(): BlockedGlobal[] {
       return false;
     }
   });
-  blockedGlobalViolationTypes = [
-    availableGlobals.map(({ violationType }) => violationType),
-  ];
+  const rawViolationTypes = availableGlobals.map(
+    ({ violationType }) => violationType,
+  ) as unknown;
+  blockedGlobalViolationTypes = rawViolationTypes as string[];
   return availableGlobals;
 }
 

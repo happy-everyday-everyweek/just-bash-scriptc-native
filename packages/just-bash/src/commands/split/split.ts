@@ -1,4 +1,3 @@
-import type { ResolvedFileIdentity } from "../../fs/traversal.js";
 /**
  * split - split a file into pieces
  *
