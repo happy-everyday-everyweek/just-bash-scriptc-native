@@ -123,18 +123,22 @@ export function getValueDepth(value: QueryValue, maxCheck = 3000): number {
       : (frame.value as QueryValue[]).length;
   const nextChild = (frame: DepthFrame): QueryValue => {
     if (frame.keys) {
-      const key = frame.keys[frame.nextChild++];
+      const keyIndex = frame.nextChild;
+      frame.nextChild = frame.nextChild + 1;
+      const key = frame.keys[keyIndex];
       // @banned-pattern-ignore: key came from Object.keys(frame.value), so it is an own property
       return (frame.value as Record<string, QueryValue>)[key];
     }
-    return (frame.value as QueryValue[])[frame.nextChild++];
+    const childIndex = frame.nextChild;
+    frame.nextChild = frame.nextChild + 1;
+    return (frame.value as QueryValue[])[childIndex];
   };
 
   // A global "seen" set mistakes ordinary sharing (such as `[input, input]`)
   // for a cycle. Track the active DFS path and memoize completed subgraphs so
   // valid DAGs retain their real depth while actual cycles still fail closed.
-  const state = new WeakMap<object, "visiting" | "done">();
-  const depths = new WeakMap<object, number>();
+  const state = new Map<object, "visiting" | "done">();
+  const depths = new Map<object, number>();
   const root = value as QueryValue[] | Record<string, QueryValue>;
   const stack: DepthFrame[] = [createFrame(root, 1)];
   state.set(root, "visiting");
