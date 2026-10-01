@@ -169,8 +169,9 @@ export async function readBytesFrom(
   },
   path: string,
 ): Promise<ByteString> {
-  if (typeof fs.readFileBytes === "function") {
-    return fs.readFileBytes(path);
+  const readBytes = fs.readFileBytes;
+  if (readBytes !== undefined) {
+    return readBytes(path);
   }
   return bytesFromUint8Array(await fs.readFileBuffer(path));
 }

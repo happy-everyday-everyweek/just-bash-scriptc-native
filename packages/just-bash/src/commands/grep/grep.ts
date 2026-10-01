@@ -937,9 +937,10 @@ async function expandGlobPatternWithTypes(
 
   try {
     // Use readdirWithFileTypes if available for better performance
-    if (ctx.fs.readdirWithFileTypes) {
+    const typedReaddir = ctx.fs.readdirWithFileTypes;
+    if (typedReaddir !== undefined) {
       useTraversalOperation(budget);
-      const entries = await ctx.fs.readdirWithFileTypes(fullDirPath);
+      const entries = await typedReaddir(fullDirPath);
       for (const entry of entries) {
         useTraversalOperation(budget);
         if (matchGlob(entry.name, globPart, { stripQuotes: true })) {
@@ -1057,9 +1058,10 @@ async function expandRecursiveWithTypes(
     }
 
     // Use readdirWithFileTypes if available
-    if (ctx.fs.readdirWithFileTypes) {
+    const typedReaddir = ctx.fs.readdirWithFileTypes;
+    if (typedReaddir !== undefined) {
       useTraversalOperation(budget);
-      const entries = await ctx.fs.readdirWithFileTypes(fullPath);
+      const entries = await typedReaddir(fullPath);
       for (const entry of entries) {
         useTraversalOperation(budget);
         if (entry.name.startsWith(".")) continue; // Skip hidden files

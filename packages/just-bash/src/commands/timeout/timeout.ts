@@ -116,7 +116,8 @@ export const timeoutCommand: RuntimeCommand = {
     }
 
     // Need exec function to run subcommand
-    if (!ctx.exec) {
+    const execFn = ctx.exec;
+    if (execFn === undefined) {
       return {
         stdout: "",
         stderr: "timeout: exec not available\n",
@@ -143,8 +144,7 @@ export const timeoutCommand: RuntimeCommand = {
         }, durationMs);
       });
 
-      const execPromise = ctx
-        .exec(shellJoinArgs([commandArgs[0]]), {
+      const execPromise = execFn(shellJoinArgs([commandArgs[0]]), {
           cwd: ctx.cwd,
           signal: combinedAbort.signal,
           stdin: latin1FromBytes(ctx.stdin),

@@ -560,12 +560,34 @@ async function walkDirectory(
   }
 
   try {
-    const entries = ctx.fs.readdirWithFileTypes
-      ? await ctx.fs.readdirWithFileTypes(absolutePath)
-      : (await ctx.fs.readdir(absolutePath)).map((name) => ({
-          name,
-          isFile: undefined as boolean | undefined,
-        }));
+    const typedReaddir = ctx.fs.readdirWithFileTypes;
+    const entries: {
+      name: string;
+      isFile: boolean | undefined;
+      isDirectory: boolean | undefined;
+      isSymbolicLink: boolean | undefined;
+    }[] = [];
+    if (typedReaddir !== undefined) {
+      const typedEntries = await typedReaddir(absolutePath);
+      for (const te of typedEntries) {
+        entries.push({
+          name: te.name,
+          isFile: te.isFile,
+          isDirectory: te.isDirectory,
+          isSymbolicLink: te.isSymbolicLink,
+        });
+      }
+    } else {
+      const plainNames = await ctx.fs.readdir(absolutePath);
+      for (const nm of plainNames) {
+        entries.push({
+          name: nm,
+          isFile: undefined,
+          isDirectory: undefined,
+          isSymbolicLink: undefined,
+        });
+      }
+    }
 
     for (const entry of entries) {
       budget.checkpoint();
@@ -595,17 +617,12 @@ async function walkDirectory(
       let isSymlink = false;
 
       // Check if entry has type info from readdirWithFileTypes
-      const hasTypeInfo = entry.isFile !== undefined && "isDirectory" in entry;
+      const hasTypeInfo =
+        entry.isFile !== undefined && entry.isDirectory !== undefined;
 
       if (hasTypeInfo) {
         // Use type info from readdirWithFileTypes
-        const dirent = entry as {
-          name: string;
-          isFile: boolean;
-          isDirectory: boolean;
-          isSymbolicLink?: boolean;
-        };
-        isSymlink = dirent.isSymbolicLink === true;
+        isSymlink = entry.isSymbolicLink === true;
 
         if (isSymlink && !options.followSymlinks) {
           continue; // Skip symlinks unless -L is specified
@@ -621,8 +638,8 @@ async function walkDirectory(
             continue; // Broken symlink, skip
           }
         } else {
-          isFile = dirent.isFile;
-          isDirectory = dirent.isDirectory;
+          isFile = entry.isFile === true;
+          isDirectory = entry.isDirectory === true;
         }
       } else {
         try {
@@ -966,11 +983,12 @@ async function readFileContent(
   let lease: ResourceLease | undefined;
   try {
     // Check for preprocessing with --pre
-    if (options.preprocessor && ctx.exec) {
+    const execFn = ctx.exec;
+    if (options.preprocessor && execFn !== undefined) {
       const filename = file.split("/").pop() || file;
       if (matchesPreGlob(filename, options.preprocessorGlobs)) {
         // Run preprocessor on this file
-        const result = await ctx.exec(shellJoinArgs([options.preprocessor]), {
+        const result = await execFn(shellJoinArgs([options.preprocessor]), {
           cwd: ctx.cwd,
           signal: ctx.signal,
           args: [filePath],

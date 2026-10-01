@@ -114,7 +114,15 @@ export const envCommand: RuntimeCommand = {
 
     // Execute with explicitly provided environment so untrusted values never
     // get reparsed as shell source via assignment prefixes.
-    return ctx.exec("command", {
+    const execFn = ctx.exec;
+    if (execFn === undefined) {
+      return {
+        stdout: "",
+        stderr: "env: exec not available\n",
+        exitCode: 1,
+      };
+    }
+    return execFn("command", {
       cwd: ctx.cwd,
       env: mapToRecord(newEnv),
       replaceEnv: true,

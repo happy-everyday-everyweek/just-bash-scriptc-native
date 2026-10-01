@@ -114,14 +114,15 @@ export const timeCommand: RuntimeCommand = {
     let result: ExecResult;
 
     try {
-      if (!ctx.exec) {
+      const execFn = ctx.exec;
+      if (execFn === undefined) {
         return {
           stdout: "",
           stderr: "time: exec not available\n",
           exitCode: 1,
         };
       }
-      result = await ctx.exec(shellJoinArgs([commandArgs[0]]), {
+      result = await execFn(shellJoinArgs([commandArgs[0]]), {
         env: mapToRecord(ctx.env),
         cwd: ctx.cwd,
         stdin: latin1FromBytes(ctx.stdin),

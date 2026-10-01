@@ -239,12 +239,12 @@ export const findCommand: RuntimeCommand = {
     }
     const effects: EvaluatedEffect[] = [];
     let exitCode = 0;
-    const output = ctx.executionScope
-      ? new ExecutionOutputAccumulator(
-          ctx.executionScope as ExecutionScope,
-          "find",
-        )
-      : undefined;
+    const scopeRaw = ctx.executionScope as unknown;
+    const scopeCast = scopeRaw as ExecutionScope;
+    const output =
+      ctx.executionScope !== undefined
+        ? new ExecutionOutputAccumulator(scopeCast, "find")
+        : undefined;
     const stdoutChunks: string[] = [];
     const stderrChunks: string[] = [];
     let fallbackOutputBytes = 0;
@@ -843,7 +843,9 @@ export const findCommand: RuntimeCommand = {
 
     // Batch -exec nodes collect only paths for which that exact expression node
     // was reached. All other effects retain entry and expression order.
-    const batchExecPaths = new Map<FindAction, string[]>();
+    const execFn = ctx.exec;
+    const batchExecActions: FindAction[] = [];
+    const batchExecPaths: string[][] = [];
     for (const effect of effects) {
       const { action, path: file } = effect;
       switch (action.type) {
@@ -868,7 +870,7 @@ export const findCommand: RuntimeCommand = {
           break;
         }
         case "exec": {
-          if (!ctx.exec) {
+          if (execFn === undefined) {
             return {
               stdout: "",
               stderr: "find: -exec not supported in this context\n",
@@ -876,15 +878,19 @@ export const findCommand: RuntimeCommand = {
             };
           }
           if (action.batchMode) {
-            const paths = batchExecPaths.get(action) ?? [];
-            paths.push(file);
-            batchExecPaths.set(action, paths);
+            let slot = batchExecActions.indexOf(action);
+            if (slot === -1) {
+              batchExecActions.push(action);
+              batchExecPaths.push([]);
+              slot = batchExecActions.length - 1;
+            }
+            batchExecPaths[slot].push(file);
             break;
           }
           const cmdWithFile = action.command.map((part) =>
             part === "{}" ? file : part,
           );
-          const result = await ctx.exec(shellJoinArgs([cmdWithFile[0]]), {
+          const result = await execFn(shellJoinArgs([cmdWithFile[0]]), {
             cwd: ctx.cwd,
             signal: ctx.signal,
             args: cmdWithFile.slice(1),
@@ -900,14 +906,17 @@ export const findCommand: RuntimeCommand = {
       }
     }
 
-    for (const [action, paths] of batchExecPaths) {
-      if (action.type !== "exec" || !ctx.exec || paths.length === 0) continue;
+    for (let slot = 0; slot < batchExecActions.length; slot++) {
+      const action = batchExecActions[slot];
+      const paths = batchExecPaths[slot];
+      if (action.type !== "exec" || execFn === undefined || paths.length === 0)
+        continue;
       const cmdWithFiles: string[] = [];
       for (const part of action.command) {
-        if (part === "{}") cmdWithFiles.push(...paths);
+        if (part === "{}") for (const p of paths) cmdWithFiles.push(p);
         else cmdWithFiles.push(part);
       }
-      const result = await ctx.exec(shellJoinArgs([cmdWithFiles[0]]), {
+      const result = await execFn(shellJoinArgs([cmdWithFiles[0]]), {
         cwd: ctx.cwd,
         signal: ctx.signal,
         args: cmdWithFiles.slice(1),
@@ -957,6 +966,16 @@ function collectActions(expr: Expression | null): FindAction[] {
  * %% - literal %
  * Also processes escape sequences: \n, \t, etc.
  */
+/** Three-digit octal rendering of a permission mode (no toString(radix)). */
+function findOctal3(mode: number): string {
+  const digits = "01234567";
+  const v = mode % 512;
+  const d2 = (v - (v % 64)) / 64;
+  const d1 = ((v % 64) - (v % 8)) / 8;
+  const d0 = v % 8;
+  return digits.charAt(d2) + digits.charAt(d1) + digits.charAt(d0);
+}
+
 function formatFindPrintf(
   format: string,
   result: {
@@ -1044,7 +1063,7 @@ function formatFindPrintf(
           break;
         case "m":
           // Permissions in octal (without leading 0)
-          value = (result.mode & 0o777).toString(8);
+          value = findOctal3(result.mode);
           i++;
           break;
         case "M":

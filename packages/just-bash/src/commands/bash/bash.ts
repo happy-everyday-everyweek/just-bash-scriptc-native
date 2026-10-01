@@ -170,19 +170,29 @@ async function executeScript(
   // tells the nested exec entry to skip the default text-mode UTF-8
   // encoding and avoid double-encoding.
   const nestedExec = ctx.execWithInheritedStdin;
-  const result = nestedExec
-    ? await nestedExec(scriptToRun, {
-        env: positionalEnv,
-        cwd: ctx.cwd,
-        signal: ctx.signal,
-      })
-    : await ctx.exec(scriptToRun, {
-        env: positionalEnv,
-        cwd: ctx.cwd,
-        stdin: latin1FromBytes(ctx.stdin),
-        stdinKind: "bytes",
-        signal: ctx.signal,
-      });
+  const plainExec = ctx.exec;
+  let result: ExecResult;
+  if (nestedExec) {
+    result = await nestedExec(scriptToRun, {
+      env: positionalEnv,
+      cwd: ctx.cwd,
+      signal: ctx.signal,
+    });
+  } else if (plainExec !== undefined) {
+    result = await plainExec(scriptToRun, {
+      env: positionalEnv,
+      cwd: ctx.cwd,
+      stdin: latin1FromBytes(ctx.stdin),
+      stdinKind: "bytes",
+      signal: ctx.signal,
+    });
+  } else {
+    return {
+      stdout: "",
+      stderr: "bash: exec not available\n",
+      exitCode: 1,
+    };
+  }
   return result;
 }
 

@@ -313,8 +313,9 @@ export const xargsCommand: RuntimeCommand = {
         appendStderr(`${cmdLine}\n`);
       }
       // Use ctx.exec to run the command, passing current working directory
-      if (ctx.exec) {
-        return ctx.exec(shellJoinArgs([cmdArgs[0]]), {
+      const execFn = ctx.exec;
+      if (execFn !== undefined) {
+        return execFn(shellJoinArgs([cmdArgs[0]]), {
           cwd: ctx.cwd,
           signal: ctx.signal,
           args: cmdArgs.slice(1),

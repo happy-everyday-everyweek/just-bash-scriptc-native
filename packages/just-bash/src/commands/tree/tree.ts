@@ -138,8 +138,9 @@ async function buildTree(
     }
     let entryInfos: EntryInfo[] = [];
 
-    if (ctx.fs.readdirWithFileTypes) {
-      const entriesWithTypes = await ctx.fs.readdirWithFileTypes(fullPath);
+    const typedReaddir = ctx.fs.readdirWithFileTypes;
+    if (typedReaddir !== undefined) {
+      const entriesWithTypes = await typedReaddir(fullPath);
       entryInfos = entriesWithTypes.map((e) => ({
         name: e.name,
         isDirectory: e.isDirectory,
@@ -244,8 +245,9 @@ async function buildTreeRecursive(
     }
     let entryInfos: EntryInfo[] = [];
 
-    if (ctx.fs.readdirWithFileTypes) {
-      const entriesWithTypes = await ctx.fs.readdirWithFileTypes(path);
+    const typedReaddir = ctx.fs.readdirWithFileTypes;
+    if (typedReaddir !== undefined) {
+      const entriesWithTypes = await typedReaddir(path);
       entryInfos = entriesWithTypes.map((e) => ({
         name: e.name,
         isDirectory: e.isDirectory,

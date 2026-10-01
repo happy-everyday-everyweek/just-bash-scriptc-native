@@ -670,8 +670,9 @@ async function listPath(
       // Use readdirWithFileTypes if available to avoid stat calls
       let dirEntries: { name: string; isDirectory: boolean }[] = [];
 
-      if (ctx.fs.readdirWithFileTypes) {
-        const entriesWithTypes = await ctx.fs.readdirWithFileTypes(fullPath);
+      const typedReaddir = ctx.fs.readdirWithFileTypes;
+      if (typedReaddir !== undefined) {
+        const entriesWithTypes = await typedReaddir(fullPath);
         traversalBudget.checkpoint();
         // This re-reads the directory already admitted above, so bound the
         // fresh allocation without reserving the same children twice.

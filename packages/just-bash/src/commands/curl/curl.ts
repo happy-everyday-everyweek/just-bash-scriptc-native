@@ -274,7 +274,8 @@ export const curlCommand: RuntimeCommand = {
     }
 
     // ctx.fetch is always available when curl command exists (curl is only registered with network config)
-    if (!ctx.fetch) {
+    const fetchFn = ctx.fetch;
+    if (fetchFn === undefined) {
       return {
         stdout: "",
         stderr: "curl: internal error: fetch not available\n",
@@ -312,7 +313,7 @@ export const curlCommand: RuntimeCommand = {
         await ctx.fs.writeFile(dumpPath, "");
       }
 
-      const result = await ctx.fetch(url, {
+      const result = await fetchFn(url, {
         method: options.method,
         headers: headers.toRecord(),
         body,
