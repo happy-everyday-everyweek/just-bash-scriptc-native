@@ -103,9 +103,8 @@ function serializeCommand(node: CommandNode): string {
     case "FunctionDef":
       return serializeFunctionDef(node);
     default: {
-      const _exhaustive: never = node;
       throw new Error(
-        `Unsupported command type: ${(_exhaustive as CommandNode).type}`,
+        `Unsupported command type: <unreachable>`,
       );
     }
   }
@@ -189,9 +188,8 @@ function serializeWordPart(part: WordPart, inDoubleQuotes: boolean): string {
     case "Glob":
       return part.pattern;
     default: {
-      const _exhaustive: never = part;
       throw new Error(
-        `Unsupported word part type: ${(_exhaustive as WordPart).type}`,
+        `Unsupported word part type: <unreachable>`,
       );
     }
   }
@@ -340,9 +338,8 @@ function serializeParameterOp(param: string, op: ParameterOperation): string {
     case "VarNamePrefix":
       return `!${op.prefix}${op.star ? "*" : "@"}`;
     default: {
-      const _exhaustive: never = op;
       throw new Error(
-        `Unsupported parameter operation type: ${(_exhaustive as ParameterOperation).type}`,
+        `Unsupported parameter operation type: <unreachable>`,
       );
     }
   }
@@ -553,9 +550,8 @@ function serializeArithExpr(expr: ArithExpr): string {
     case "ArithSingleQuote":
       return `'${expr.content}'`;
     default: {
-      const _exhaustive: never = expr;
       throw new Error(
-        `Unsupported arithmetic expression type: ${(_exhaustive as ArithExpr).type}`,
+        `Unsupported arithmetic expression type: <unreachable>`,
       );
     }
   }
@@ -580,9 +576,8 @@ function serializeCondExpr(expr: ConditionalExpressionNode): string {
     case "CondWord":
       return serializeWord(expr.word);
     default: {
-      const _exhaustive: never = expr;
       throw new Error(
-        `Unsupported conditional expression type: ${(_exhaustive as ConditionalExpressionNode).type}`,
+        `Unsupported conditional expression type: <unreachable>`,
       );
     }
   }

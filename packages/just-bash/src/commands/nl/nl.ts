@@ -68,8 +68,7 @@ function formatLineNumber(
       // Right justified with zeros
       return numStr.padStart(width, "0");
     default: {
-      const _exhaustive: never = format;
-      return _exhaustive;
+      return numStr;
     }
   }
 }
@@ -83,8 +82,7 @@ function shouldNumber(line: string, style: NumberingStyle): boolean {
     case "n":
       return false;
     default: {
-      const _exhaustive: never = style;
-      return _exhaustive;
+      return false;
     }
   }
 }
