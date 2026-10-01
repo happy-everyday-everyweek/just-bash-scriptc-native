@@ -1,3 +1,4 @@
+import type { ExecResult } from "../types.js";
 /**
  * Defense-in-Depth Box
  *
@@ -154,6 +155,14 @@ interface DefenseContext {
 
 // AsyncLocalStorage instance to track whether current async context is within bash.exec()
 // Only created in Node.js environments (not in browser builds)
+/**
+ * Tracks active trusted scopes per executionId.
+ *
+ * Module scope (not a private static) so the free-function entry points below
+ * can share it without calling a static through the class value.
+ */
+const trustedExecutionDepth = new Map<string, number>();
+
 const executionContext: AsyncLocalStorageType<DefenseContext> | null =
   !IS_BROWSER && AsyncLocalStorageClass
     ? new AsyncLocalStorageClass<DefenseContext>()
@@ -277,7 +286,6 @@ export class DefenseInDepthBox {
    * Needed for async machinery that may not preserve `store.trusted` all the
    * way into Node.js internals (e.g. dynamic import resolution hooks).
    */
-  private static trustedExecutionDepth = new Map<string, number>();
 
   private config: ResolvedDefenseConfig;
   private refCount = 0;
@@ -343,7 +351,7 @@ export class DefenseInDepthBox {
       DefenseInDepthBox.instance.forceDeactivate();
       DefenseInDepthBox.instance = null;
     }
-    DefenseInDepthBox.trustedExecutionDepth.clear();
+    trustedExecutionDepth.clear();
   }
 
   /**
@@ -364,25 +372,25 @@ export class DefenseInDepthBox {
 
   private static enterTrustedScope(executionId: string): void {
     const current =
-      DefenseInDepthBox.trustedExecutionDepth.get(executionId) ?? 0;
-    DefenseInDepthBox.trustedExecutionDepth.set(executionId, current + 1);
+      trustedExecutionDepth.get(executionId) ?? 0;
+    trustedExecutionDepth.set(executionId, current + 1);
   }
 
   private static leaveTrustedScope(executionId: string): void {
-    const current = DefenseInDepthBox.trustedExecutionDepth.get(executionId);
+    const current = trustedExecutionDepth.get(executionId);
     if (!current) return;
     if (current === 1) {
-      DefenseInDepthBox.trustedExecutionDepth.delete(executionId);
+      trustedExecutionDepth.delete(executionId);
       return;
     }
-    DefenseInDepthBox.trustedExecutionDepth.set(executionId, current - 1);
+    trustedExecutionDepth.set(executionId, current - 1);
   }
 
   private static isTrustedScopeActive(
     executionId: string | undefined,
   ): boolean {
     if (!executionId) return false;
-    const depth = DefenseInDepthBox.trustedExecutionDepth.get(executionId);
+    const depth = trustedExecutionDepth.get(executionId);
     return (depth ?? 0) > 0;
   }
 
@@ -774,6 +782,47 @@ export class DefenseInDepthBox {
    * Restore blocking for an untrusted operation nested inside trusted host code.
    */
   static async runUntrustedAsync<T>(fn: () => Promise<T>): Promise<T> {
+    if (!executionContext) return fn();
+    const current = executionContext.getStore();
+    if (!current) return fn();
+    return executionContext.run(
+      { ...current, trusted: false, forceUntrusted: true },
+      fn,
+    );
+  }
+
+  /**
+   * ExecResult-typed entry point.
+   *
+   * A compiled call site cannot call the generic `runTrustedAsync` through the
+   * class value, so this pinned-signature twin exists alongside it.
+   */
+  static async runTrustedTask(
+    fn: () => Promise<ExecResult>,
+  ): Promise<ExecResult> {
+    if (!executionContext) return fn();
+    const current = executionContext.getStore();
+    if (!current) return fn();
+    const { executionId } = current;
+    return executionContext.run(
+      { ...current, trusted: true, forceUntrusted: false },
+      async () => {
+        DefenseInDepthBox.enterTrustedScope(executionId);
+        try {
+          return await fn();
+        } finally {
+          DefenseInDepthBox.leaveTrustedScope(executionId);
+        }
+      },
+    );
+  }
+
+  /**
+   * ExecResult-typed twin of `runUntrustedAsync` (see above).
+   */
+  static async runUntrustedTask(
+    fn: () => Promise<ExecResult>,
+  ): Promise<ExecResult> {
     if (!executionContext) return fn();
     const current = executionContext.getStore();
     if (!current) return fn();
@@ -2311,4 +2360,51 @@ export class DefenseInDepthBox {
 
     this.originalDescriptors = [];
   }
+}
+
+/**
+ * Run `fn` with trusted globals (ExecResult-typed).
+ *
+ * A lowered build cannot call a static method through the class value, so the
+ * compiled call sites use this free function instead of `runTrustedAsync`.
+ */
+export async function runTrustedTask(
+  fn: () => Promise<ExecResult>,
+): Promise<ExecResult> {
+  if (!executionContext) return fn();
+  const current = executionContext.getStore();
+  if (!current) return fn();
+  const { executionId } = current;
+  return executionContext.run(
+    { ...current, trusted: true, forceUntrusted: false },
+    async () => {
+      const depth = trustedExecutionDepth.get(executionId) ?? 0;
+      trustedExecutionDepth.set(executionId, depth + 1);
+      try {
+        return await fn();
+      } finally {
+        const now = trustedExecutionDepth.get(executionId);
+        if (now !== undefined) {
+          if (now <= 1) {
+            trustedExecutionDepth.delete(executionId);
+          } else {
+            trustedExecutionDepth.set(executionId, now - 1);
+          }
+        }
+      }
+    },
+  );
+}
+
+/** ExecResult-typed twin of `runUntrustedAsync`. */
+export async function runUntrustedTask(
+  fn: () => Promise<ExecResult>,
+): Promise<ExecResult> {
+  if (!executionContext) return fn();
+  const current = executionContext.getStore();
+  if (!current) return fn();
+  return executionContext.run(
+    { ...current, trusted: false, forceUntrusted: true },
+    fn,
+  );
 }

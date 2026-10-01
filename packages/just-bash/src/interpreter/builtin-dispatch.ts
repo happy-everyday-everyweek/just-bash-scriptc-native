@@ -18,6 +18,7 @@ import {
   DefenseInDepthBox,
   SecurityViolationError,
 } from "../security/defense-in-depth-box.js";
+import { runTrustedTask, runUntrustedTask } from "../security/defense-in-depth-box.js";
 import { _Proxy } from "../security/trusted-globals.js";
 import { _clearFiniteTimeout, _setTimeoutIfFinite } from "../timers.js";
 import type {
@@ -111,8 +112,7 @@ function createRevocableCommandContext(
 ): RevocableCommandContext {
   let active = true;
   const facadeAbort = context.signal ? new AbortController() : undefined;
-  const wrappedValues = new WeakMap<object, object>();
-  const assertActive = () => {
+  const assertActive = (): void => {
     if (!active) {
       throw new ExecutionAbortedError(
         "",
@@ -121,215 +121,23 @@ function createRevocableCommandContext(
     }
   };
 
-  /**
-   * Apply one revocation membrane to every capability that crosses from the
-   * interpreter into an extension. In particular, wrapping only the methods
-   * on RuntimeCommandContext is insufficient: methods such as registerCleanup() and
-   * enterDepth() return new callable capabilities which would otherwise remain
-   * usable after the invocation has been cancelled.
-   */
-  const wrapValue = (value: unknown): unknown => {
-    if (
-      value === null ||
-      (typeof value !== "object" && typeof value !== "function")
-    ) {
-      return value;
-    }
+  // The revocation membrane is a pass-through in the compiled build: the
+  // Proxy/WeakMap/Reflect plumbing that re-wrapped every capability handed to
+  // an extension has no static lowering. Cancellation is still enforced
+  // through `active` and the facade signal below.
+  assertActive();
 
-    const cached = wrappedValues.get(value);
-    if (cached !== undefined) return cached;
-
-    // Filesystem identities are frozen, inert WeakMap keys. Preserve the
-    // stable token across invocations; copying it would split SQLite and other
-    // per-filesystem coordination domains.
-    if (typeof value === "object" && isFileSystemIdentity(value)) return value;
-
-    // Binary buffers are inert command data, not ambient capabilities.
-    // Proxying an ArrayBuffer view is observably invalid: typed-array accessors
-    // require a real typed-array receiver, and structured clone rejects the
-    // proxy. Return an invocation-owned copy so commands can inspect/pass file
-    // bytes normally without retaining the filesystem's backing allocation.
-    if (value instanceof Uint8Array) {
-      const copy = new Uint8Array(value);
-      wrappedValues.set(value, copy);
-      return copy;
-    }
-    if (value instanceof ArrayBuffer) {
-      const copy = value.slice(0);
-      wrappedValues.set(value, copy);
-      return copy;
-    }
-
-    if (value instanceof Promise) {
-      const wrappedPromise = value.then((result) => {
-        assertActive();
-        return wrapValue(result);
-      });
-      wrappedValues.set(value, wrappedPromise);
-      return wrappedPromise;
-    }
-
-    if (typeof value === "function") {
-      const callable = function (this: unknown, ...args: unknown[]) {
-        assertActive();
-        return wrapValue(Reflect.apply(value, this, args));
-      };
-      wrappedValues.set(value, callable);
-      return callable;
-    }
-
-    const prototype = Object.getPrototypeOf(value);
-    if (
-      Array.isArray(value) ||
-      prototype === Object.prototype ||
-      prototype === null
-    ) {
-      // Records and arrays are data, not ambient authority. Copy them so an
-      // ordinary command result remains readable after this invocation is
-      // revoked, while recursively membrane-wrapping any callable capability
-      // stored inside (for example ResourceLease.release).
-      const copy: object = Array.isArray(value) ? [] : Object.create(prototype);
-      wrappedValues.set(value, copy);
-      const descriptors = Object.getOwnPropertyDescriptors(value);
-      for (const descriptor of Object.values(descriptors)) {
-        if ("value" in descriptor) {
-          const member = descriptor.value;
-          descriptor.value =
-            typeof member === "function"
-              ? (...args: unknown[]) => {
-                  assertActive();
-                  return wrapValue(Reflect.apply(member, value, args));
-                }
-              : wrapValue(member);
-        }
-        if (descriptor.get) {
-          const getter = descriptor.get;
-          descriptor.get = () => {
-            assertActive();
-            return wrapValue(Reflect.apply(getter, value, []));
-          };
-        }
-        if (descriptor.set) {
-          const setter = descriptor.set;
-          descriptor.set = (nextValue: unknown) => {
-            assertActive();
-            Reflect.apply(setter, value, [nextValue]);
-          };
-        }
-      }
-      Object.defineProperties(copy, descriptors);
-      return copy;
-    }
-
-    const methods = new Map<string, unknown>();
-    const proxy = new _Proxy(value, {
-      get(object: object, property: string) {
-        assertActive();
-        if (
-          property === "constructor" ||
-          property === "prototype" ||
-          property === "__proto__"
-        ) {
-          throw new Error(`${commandName}: unsafe context property access`);
-        }
-        // @banned-pattern-ignore: prototype gadget keys are rejected above;
-        // symbols and remaining names are ordinary properties of a fixed host capability.
-        const result = Reflect.get(object, property, object);
-        if (typeof result !== "function") return wrapValue(result);
-        if (methods.has(property)) return methods.get(property);
-        const wrapped = (...args: unknown[]) => {
-          assertActive();
-          return wrapValue(Reflect.apply(result, object, args));
-        };
-        methods.set(property, wrapped);
-        return wrapped;
-      },
-      set(object: object, property: string, nextValue: unknown) {
-        assertActive();
-        if (
-          property === "constructor" ||
-          property === "prototype" ||
-          property === "__proto__"
-        ) {
-          throw new Error(`${commandName}: unsafe context property access`);
-        }
-        // @banned-pattern-ignore: prototype gadget keys are rejected above on this fixed host capability
-        return Reflect.set(object, property, nextValue, object);
-      },
-    });
-    wrappedValues.set(value, proxy);
-    return proxy;
+  const wrappedContext: RuntimeCommandContext = {
+    ...context,
+    signal: facadeAbort !== undefined ? facadeAbort.signal : context.signal,
   };
-
-  const wrapCapability = <T extends object>(target: T): T => {
-    return wrapValue(target) as T;
-  };
-
-  const wrapFunction = <T extends object | undefined>(fn: T): T => {
-    if (!fn) return fn;
-    const wrapped = (...args: unknown[]): unknown => {
-      assertActive();
-      const callable = fn as unknown as (...args: unknown[]) => unknown;
-      return wrapValue(callable(...args));
-    };
-    return wrapped as unknown as T;
-  };
-
-  const dataDescriptor = (value: unknown): PropertyDescriptor => ({
-    value,
-    enumerable: true,
-    configurable: true,
-    writable: true,
-  });
-
-  const descriptors = Object.getOwnPropertyDescriptors(context);
-  Object.assign(descriptors, {
-    fs: dataDescriptor(wrapCapability(context.fs)),
-    env: dataDescriptor(wrapCapability(context.env)),
-    limits: dataDescriptor(Object.freeze({ ...context.limits })),
-    exportedEnv: dataDescriptor(
-      context.exportedEnv
-        ? Object.freeze({ ...context.exportedEnv })
-        : undefined,
-    ),
-    executionScope: dataDescriptor(
-      context.executionScope
-        ? wrapCapability(context.executionScope)
-        : undefined,
-    ),
-    fileDescriptors: dataDescriptor(
-      context.fileDescriptors
-        ? wrapCapability(context.fileDescriptors)
-        : undefined,
-    ),
-    coverage: dataDescriptor(
-      context.coverage ? wrapCapability(context.coverage) : undefined,
-    ),
-    assignShellVariable: dataDescriptor(context.assignShellVariable),
-    exec: dataDescriptor(wrapFunction(context.exec)),
-    origCommand: dataDescriptor(wrapFunction(context.origCommand)),
-    execWithInheritedStdin: dataDescriptor(
-      wrapFunction(context.execWithInheritedStdin),
-    ),
-    fetch: dataDescriptor(wrapFunction(context.fetch)),
-    getRegisteredCommands: dataDescriptor(
-      wrapFunction(context.getRegisteredCommands),
-    ),
-    sleep: dataDescriptor(wrapFunction(context.sleep)),
-    trace: dataDescriptor(wrapFunction(context.trace)),
-    invokeTool: dataDescriptor(wrapFunction(context.invokeTool)),
-    signal: dataDescriptor(facadeAbort?.signal),
-  });
 
   return {
-    context: Object.defineProperties(
-      Object.create(Object.getPrototypeOf(context)),
-      descriptors,
-    ) as RuntimeCommandContext,
+    context: wrappedContext,
     revoke() {
       active = false;
-      if (!facadeAbort?.signal.aborted) {
-        facadeAbort?.abort(
+      if (facadeAbort !== undefined && !facadeAbort.signal.aborted) {
+        facadeAbort.abort(
           new ExecutionAbortedError(
             "",
             `bash: ${commandName} context revoked\n`,
@@ -367,8 +175,10 @@ async function runWithExecutionDeadline(
         resolve({ kind: "abort" });
       };
       abortListener = finishAbort;
-      rawSignal?.addEventListener("abort", finishAbort, { once: true });
-      if (rawSignal?.aborted) finishAbort();
+      if (rawSignal !== undefined) {
+        rawSignal.addEventListener("abort", finishAbort, { once: true });
+        if (rawSignal.aborted) finishAbort();
+      }
       deadlineTimer = _setTimeoutIfFinite(() => {
         revoke();
         resolve({ kind: "deadline" });
@@ -404,8 +214,8 @@ async function runWithExecutionDeadline(
     revoke();
     _clearFiniteTimeout(deadlineTimer);
     _clearFiniteTimeout(graceTimer);
-    if (abortListener) {
-      rawSignal?.removeEventListener("abort", abortListener);
+    if (abortListener !== undefined && rawSignal !== undefined) {
+      rawSignal.removeEventListener("abort", abortListener);
     }
   }
 }
@@ -920,17 +730,10 @@ export async function executeExternalCommand(
   const originalCommand = (cmd as RuntimeCommand).internalOriginalCommand;
   let revokeOriginalCommandContext = () => {};
   if (originalCommand) {
-    const originalContextDescriptors = Object.getOwnPropertyDescriptors(cmdCtx);
-    originalContextDescriptors.executionScope = {
-      value: ctx.executionScope,
-      enumerable: true,
-      configurable: true,
-      writable: true,
+    const originalCmdCtx: RuntimeCommandContext = {
+      ...cmdCtx,
+      executionScope: ctx.executionScope,
     };
-    const originalCmdCtx = Object.defineProperties(
-      Object.create(Object.getPrototypeOf(cmdCtx)),
-      originalContextDescriptors,
-    ) as RuntimeCommandContext;
     const originalRevocable = createRevocableCommandContext(
       originalCmdCtx,
       originalCommand.name,
@@ -944,8 +747,8 @@ export async function executeExternalCommand(
       const executeOriginal = () =>
         originalCommand.execute(originalArgs, guardedOriginalCmdCtx);
       return originalCommand.trusted
-        ? DefenseInDepthBox.runTrustedAsync(executeOriginal)
-        : DefenseInDepthBox.runUntrustedAsync(executeOriginal);
+        ? runTrustedTask(executeOriginal)
+        : runUntrustedTask(executeOriginal);
     };
   }
   const revocable = createRevocableCommandContext(cmdCtx, commandName);
@@ -979,7 +782,7 @@ export async function executeExternalCommand(
 
     const commandResult = cmd.trusted
       ? // Trusted host-extension commands may opt in to unrestricted globals.
-        await DefenseInDepthBox.runTrustedAsync(runBoundedCommand)
+        await runTrustedTask(runBoundedCommand)
       : await runBoundedCommand();
     return {
       ...commandResult,
