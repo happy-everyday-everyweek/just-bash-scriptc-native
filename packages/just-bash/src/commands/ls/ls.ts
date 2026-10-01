@@ -117,7 +117,7 @@ function formatDate(date: Date): string {
   const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
   // If within last 6 months, show time; otherwise show year
-  if (date > sixMonthsAgo) {
+  if (date.getTime() > sixMonthsAgo.getTime()) {
     const hours = String(date.getHours()).padStart(2, "0");
     const mins = String(date.getMinutes()).padStart(2, "0");
     return `${month} ${day} ${hours}:${mins}`;

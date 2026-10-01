@@ -77,7 +77,7 @@ function globToRegex(pattern: string, ignoreCase?: boolean): RegexLike {
   let regex = "^";
 
   for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
     if (c === "*") {
       regex += ".*";
     } else if (c === "?") {
@@ -85,7 +85,7 @@ function globToRegex(pattern: string, ignoreCase?: boolean): RegexLike {
     } else if (c === "[") {
       // Character class - find closing bracket
       let j = i + 1;
-      while (j < pattern.length && pattern[j] !== "]") j++;
+      while (j < pattern.length && pattern.charAt(j) !== "]") j++;
       regex += pattern.slice(i, j + 1);
       i = j;
     } else if (

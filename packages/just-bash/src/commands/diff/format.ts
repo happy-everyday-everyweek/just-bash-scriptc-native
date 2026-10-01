@@ -1,3 +1,4 @@
+import { toOctalFixed } from "../../utils/radix.js";
 /**
  * Output formatters for diff.
  *
@@ -131,7 +132,7 @@ function quoteFilename(name: string): string {
     else if (ch === "\n") out += "\\n";
     else if (ch === "\r") out += "\\r";
     else if (ch < "\u0020" || ch === "\u007f") {
-      out += `\\${ch.charCodeAt(0).toString(8).padStart(3, "0")}`;
+      out += `\\${toOctalFixed(ch.charCodeAt(0), 3)}`;
     } else out += ch;
   }
   return `${out}"`;

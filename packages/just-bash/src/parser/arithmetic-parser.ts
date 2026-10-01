@@ -41,24 +41,24 @@ function preprocessArithInput(input: string): string {
   let result = "";
   let i = 0;
   while (i < input.length) {
-    if (input[i] === '"') {
+    if (input.charAt(i) === '"') {
       // Skip opening quote
       i++;
       // Copy content until closing quote
-      while (i < input.length && input[i] !== '"') {
-        if (input[i] === "\\" && i + 1 < input.length) {
+      while (i < input.length && input.charAt(i) !== '"') {
+        if (input.charAt(i) === "\\" && i + 1 < input.length) {
           // Handle escape sequences - keep the escaped character
-          result += input[i + 1];
+          result += input.charAt(i + 1);
           i += 2;
         } else {
-          result += input[i];
+          result += input.charAt(i);
           i++;
         }
       }
       // Skip closing quote
       if (i < input.length) i++;
     } else {
-      result += input[i];
+      result += input.charAt(i);
       i++;
     }
   }
@@ -1046,7 +1046,7 @@ function parseArithPrimary(
         currentPos++;
         stringKey = "";
         while (currentPos < input.length && input[currentPos] !== quote) {
-          stringKey += input[currentPos];
+      stringKey += input.charAt(currentPos);
           currentPos++;
         }
         if (input[currentPos] === quote) currentPos++;

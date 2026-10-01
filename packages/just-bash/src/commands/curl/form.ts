@@ -1,3 +1,4 @@
+import { toHexLower } from "../../utils/radix.js";
 /**
  * Form data handling for curl command
  */
@@ -6,7 +7,7 @@ import type { FormField } from "./types.js";
 
 export function encodeCurlData(value: string): string {
   return encodeURIComponent(value)
-    .replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16)}`)
+    .replace(/[!'()*]/g, (char) => `%${toHexLower(char.charCodeAt(0))}`)
     .replace(/%20/g, "+")
     .replace(/%[0-9A-F]{2}/g, (percentEscape) => percentEscape.toLowerCase());
 }
@@ -72,7 +73,7 @@ export function generateMultipartBody(
   fields: FormField[],
   fileContents: Map<string, string>,
 ): { body: string; boundary: string } {
-  const boundary = `----CurlFormBoundary${Date.now().toString(36)}`;
+  const boundary = `----CurlFormBoundary${String(Date.now())}`;
   const parts: string[] = [];
 
   for (const field of fields) {

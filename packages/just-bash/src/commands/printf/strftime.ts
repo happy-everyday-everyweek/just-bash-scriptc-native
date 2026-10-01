@@ -58,8 +58,8 @@ export function formatStrftime(
         "iterations",
       );
     }
-    if (format[i] === "%" && i + 1 < format.length) {
-      const directive = format[i + 1];
+    if (format.charAt(i) === "%" && i + 1 < format.length) {
+      const directive = format.charAt(i + 1);
       let formatted: string | null;
       if (directiveCache.has(directive)) {
         formatted = directiveCache.get(directive) ?? null;
@@ -72,11 +72,11 @@ export function formatStrftime(
         i += 2;
       } else {
         // Unknown directive, keep as-is
-        append(format[i]);
+        append(format.charAt(i));
         i++;
       }
     } else {
-      append(format[i]);
+      append(format.charAt(i));
       i++;
     }
   }

@@ -205,7 +205,7 @@ function transformLine(
     } else if (opts.showNonprinting) {
       append(showNonprintingByte(b));
     } else {
-      append(line[i]);
+      append(line.charAt(i));
     }
   }
   return out;

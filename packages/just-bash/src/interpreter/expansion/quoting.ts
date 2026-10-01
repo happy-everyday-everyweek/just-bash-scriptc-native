@@ -1,3 +1,4 @@
+import { toOctalFixed } from "../../utils/radix.js";
 /**
  * Quoting helpers for word expansion
  *
@@ -43,7 +44,7 @@ export function quoteValue(value: string): string {
           const code = char.charCodeAt(0);
           if (code < 32 || code === 127) {
             // Use octal escapes like bash does (not hex)
-            result += `\\${code.toString(8).padStart(3, "0")}`;
+            result += `\\${toOctalFixed(code, 3)}`;
           } else {
             result += char;
           }

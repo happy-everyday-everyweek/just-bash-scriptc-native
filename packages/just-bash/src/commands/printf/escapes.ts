@@ -154,8 +154,8 @@ export function processEscapes(
   let i = 0;
 
   while (i < str.length) {
-    if (str[i] === "\\" && i + 1 < str.length) {
-      const next = str[i + 1];
+    if (str.charAt(i) === "\\" && i + 1 < str.length) {
+      const next = str.charAt(i + 1);
       switch (next) {
         case "n":
           result += "\n";
@@ -206,8 +206,8 @@ export function processEscapes(
           // Octal escape sequence
           let octal = "";
           let j = i + 1;
-          while (j < str.length && j < i + 4 && /[0-7]/.test(str[j])) {
-            octal += str[j];
+          while (j < str.length && j < i + 4 && /[0-7]/.test(str.charAt(j))) {
+            octal += str.charAt(j);
             j++;
           }
           result += String.fromCharCode(parseIntRadix(octal, 8));
@@ -221,8 +221,8 @@ export function processEscapes(
           let j = i;
           while (
             j + 3 < str.length &&
-            str[j] === "\\" &&
-            str[j + 1] === "x" &&
+            str.charAt(j) === "\\" &&
+            str.charAt(j + 1) === "x" &&
             /[0-9a-fA-F]{2}/.test(str.slice(j + 2, j + 4))
           ) {
             bytes.push(parseIntRadix(str.slice(j + 2, j + 4), 16));
@@ -243,7 +243,7 @@ export function processEscapes(
             i = j;
           } else {
             // No valid hex escape, keep the backslash
-            result += str[i];
+            result += str.charAt(i);
             i++;
           }
           break;
@@ -252,8 +252,8 @@ export function processEscapes(
           // Unicode escape \uHHHH (1-4 hex digits)
           let hex = "";
           let j = i + 2;
-          while (j < str.length && j < i + 6 && /[0-9a-fA-F]/.test(str[j])) {
-            hex += str[j];
+          while (j < str.length && j < i + 6 && /[0-9a-fA-F]/.test(str.charAt(j))) {
+            hex += str.charAt(j);
             j++;
           }
           if (hex) {
@@ -269,8 +269,8 @@ export function processEscapes(
           // Unicode escape \UHHHHHHHH (1-8 hex digits)
           let hex = "";
           let j = i + 2;
-          while (j < str.length && j < i + 10 && /[0-9a-fA-F]/.test(str[j])) {
-            hex += str[j];
+          while (j < str.length && j < i + 10 && /[0-9a-fA-F]/.test(str.charAt(j))) {
+            hex += str.charAt(j);
             j++;
           }
           if (hex) {
@@ -283,11 +283,11 @@ export function processEscapes(
           break;
         }
         default:
-          result += str[i];
+          result += str.charAt(i);
           i++;
       }
     } else {
-      result += str[i];
+      result += str.charAt(i);
       i++;
     }
   }

@@ -158,7 +158,7 @@ export async function expandSubscriptForAssocArray(
         let depth = 1;
         let j = i + 2;
         while (j < inner.length && depth > 0) {
-          if (inner[j] === "(" && inner[j - 1] === "$") {
+          if (inner.charAt(j) === "(" && inner[j - 1] === "$") {
             depth++;
           } else if (inner[j] === "(") {
             depth++;
@@ -187,8 +187,8 @@ export async function expandSubscriptForAssocArray(
         let depth = 1;
         let j = i + 2;
         while (j < inner.length && depth > 0) {
-          if (inner[j] === "{") depth++;
-          else if (inner[j] === "}") depth--;
+          if (inner.charAt(j) === "{") depth++;
+          else if (inner.charAt(j) === "}") depth--;
           j++;
         }
         const varExpr = inner.slice(i + 2, j - 1);
@@ -199,7 +199,7 @@ export async function expandSubscriptForAssocArray(
       } else if (/[a-zA-Z_]/.test(inner.charAt(i + 1) || "")) {
         // $name - find end of name
         let j = i + 1;
-        while (j < inner.length && /[a-zA-Z0-9_]/.test(inner[j])) {
+        while (j < inner.length && /[a-zA-Z0-9_]/.test(inner.charAt(j))) {
           j++;
         }
         const varName = inner.slice(i + 1, j);
@@ -214,7 +214,7 @@ export async function expandSubscriptForAssocArray(
     } else if (inner.charAt(i) === "`") {
       // Legacy backtick command substitution
       let j = i + 1;
-      while (j < inner.length && inner[j] !== "`") {
+      while (j < inner.length && inner.charAt(j) !== "`") {
         j++;
       }
       const cmdStr = inner.slice(i + 1, j);

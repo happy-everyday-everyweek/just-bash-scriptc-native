@@ -86,30 +86,30 @@ function transformPosixCharacterClasses(pattern: string): string {
     }
 
     // Check for start of bracket expression
-    if (pattern[i] === "[") {
+    if (pattern.charAt(i) === "[") {
       // Parse the entire bracket expression
       let bracketExpr = "[";
       i++;
 
       // Handle negation
-      if (i < pattern.length && (pattern[i] === "^" || pattern[i] === "!")) {
+      if (i < pattern.length && (pattern.charAt(i) === "^" || pattern[i] === "!")) {
         bracketExpr += "^";
         i++;
       }
 
       // Handle ] as first char (literal ])
-      if (i < pattern.length && pattern[i] === "]") {
+      if (i < pattern.length && pattern.charAt(i) === "]") {
         bracketExpr += "\\]";
         i++;
       }
 
       // Parse bracket expression contents
-      while (i < pattern.length && pattern[i] !== "]") {
+      while (i < pattern.length && pattern.charAt(i) !== "]") {
         // Check for POSIX character class [[:name:]]
         if (
-          pattern[i] === "[" &&
+          pattern.charAt(i) === "[" &&
           i + 1 < pattern.length &&
-          pattern[i + 1] === ":"
+          pattern.charAt(i + 1) === ":"
         ) {
           // Find the closing :]
           const closeIdx = pattern.indexOf(":]", i + 2);
@@ -125,19 +125,19 @@ function transformPosixCharacterClasses(pattern: string): string {
         }
 
         // Handle escape sequences
-        if (pattern[i] === "\\" && i + 1 < pattern.length) {
-          bracketExpr += pattern[i] + pattern[i + 1];
+        if (pattern.charAt(i) === "\\" && i + 1 < pattern.length) {
+          bracketExpr += pattern.charAt(i) + pattern[i + 1];
           i += 2;
           continue;
         }
 
         // Regular character
-        bracketExpr += pattern[i];
+        bracketExpr += pattern.charAt(i);
         i++;
       }
 
       // Close the bracket expression
-      if (i < pattern.length && pattern[i] === "]") {
+      if (i < pattern.length && pattern.charAt(i) === "]") {
         bracketExpr += "]";
         i++;
       }
@@ -147,14 +147,14 @@ function transformPosixCharacterClasses(pattern: string): string {
     }
 
     // Handle escape sequences outside bracket expressions
-    if (pattern[i] === "\\" && i + 1 < pattern.length) {
-      result += pattern[i] + pattern[i + 1];
+    if (pattern.charAt(i) === "\\" && i + 1 < pattern.length) {
+      result += pattern.charAt(i) + pattern[i + 1];
       i += 2;
       continue;
     }
 
     // Regular character
-    result += pattern[i];
+    result += pattern.charAt(i);
     i++;
   }
 

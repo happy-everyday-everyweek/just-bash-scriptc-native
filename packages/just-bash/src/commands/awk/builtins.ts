@@ -635,7 +635,7 @@ export function formatPrintf(
   };
 
   while (i < format.length) {
-    if (format[i] === "%" && i + 1 < format.length) {
+    if (format.charAt(i) === "%" && i + 1 < format.length) {
       let j = i + 1;
       let flags = "";
       let width = "";
@@ -644,10 +644,10 @@ export function formatPrintf(
 
       // Check for positional argument: %n$ where n is a number
       const posStart = j;
-      while (j < format.length && /\d/.test(format[j])) {
+      while (j < format.length && /\d/.test(format.charAt(j))) {
         j++;
       }
-      if (j > posStart && format[j] === "$") {
+      if (j > posStart && format.charAt(j) === "$") {
         // Found positional argument like %2$
         positionalIdx = parseIntDecimal(format.substring(posStart, j)) - 1; // Convert to 0-based
         j++; // Skip the $
@@ -662,25 +662,25 @@ export function formatPrintf(
           // Check for hh or ll first (2-char modifiers)
           if (
             j + 1 < format.length &&
-            ((format[j] === "h" && format[j + 1] === "h") ||
+            ((format.charAt(j) === "h" && format[j + 1] === "h") ||
               (format[j] === "l" && format[j + 1] === "l"))
           ) {
             j += 2;
             return;
           }
           // Check for single-char modifiers
-          if (/[lzjh]/.test(format[j])) {
+          if (/[lzjh]/.test(format.charAt(j))) {
             j++;
           }
         }
       };
 
-      while (j < format.length && /[-+ #0]/.test(format[j])) {
-        flags += format[j++];
+      while (j < format.length && /[-+ #0]/.test(format.charAt(j))) {
+        flags += format.charAt(j++);
       }
 
       // Handle * for width
-      if (format[j] === "*") {
+      if (format.charAt(j) === "*") {
         const widthVal = values[valueIdx++];
         const w = widthVal !== undefined ? Math.floor(Number(widthVal)) : 0;
         if (!Number.isFinite(w) || !Number.isSafeInteger(w)) {
@@ -697,8 +697,8 @@ export function formatPrintf(
         }
         j++;
       } else {
-        while (j < format.length && /\d/.test(format[j])) {
-          width += format[j++];
+        while (j < format.length && /\d/.test(format.charAt(j))) {
+          width += format.charAt(j++);
         }
       }
       if (width && parseIntDecimal(width) > maxFieldWidth) {
@@ -708,10 +708,10 @@ export function formatPrintf(
         );
       }
 
-      if (format[j] === ".") {
+      if (format.charAt(j) === ".") {
         j++;
         // Handle * for precision
-        if (format[j] === "*") {
+        if (format.charAt(j) === "*") {
           const precVal = values[valueIdx++];
           const parsedPrecision =
             precVal !== undefined ? Math.floor(Number(precVal)) : 0;
@@ -727,8 +727,8 @@ export function formatPrintf(
           precision = parsedPrecision < 0 ? "" : String(parsedPrecision);
           j++;
         } else {
-          while (j < format.length && /\d/.test(format[j])) {
-            precision += format[j++];
+          while (j < format.length && /\d/.test(format.charAt(j))) {
+            precision += format.charAt(j++);
           }
         }
         if (precision && parseIntDecimal(precision) > maxFieldWidth) {
@@ -742,7 +742,7 @@ export function formatPrintf(
       // Skip length modifiers before the specifier
       skipLengthMods();
 
-      const spec = format[j];
+      const spec = format.charAt(j);
       // Use positional index if specified, otherwise use sequential index
       const valIdx = positionalIdx !== undefined ? positionalIdx : valueIdx;
       const val = values[valIdx];
@@ -977,8 +977,8 @@ export function formatPrintf(
           append(format.substring(i, j + 1));
       }
       i = j + 1;
-    } else if (format[i] === "\\" && i + 1 < format.length) {
-      const esc = format[i + 1];
+    } else if (format.charAt(i) === "\\" && i + 1 < format.length) {
+      const esc = format.charAt(i + 1);
       switch (esc) {
         case "n":
           append("\n");
@@ -997,7 +997,7 @@ export function formatPrintf(
       }
       i += 2;
     } else {
-      append(format[i++]);
+      append(format.charAt(i++));
     }
   }
 

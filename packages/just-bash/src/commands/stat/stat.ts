@@ -1,3 +1,4 @@
+import { toOctal, toOctalFixed } from "../../utils/radix.js";
 import { utf8ByteLength } from "../../encoding.js";
 import { rethrowFatalExecutionError } from "../../fatal-execution-error.js";
 import { ExecutionLimitError } from "../../interpreter/errors.js";
@@ -77,7 +78,7 @@ export const statCommand: RuntimeCommand = {
 
         if (format) {
           // Handle custom format
-          const modeOctal = stat.mode.toString(8);
+          const modeOctal = toOctal(stat.mode);
           const modeStr = formatMode(stat.mode, stat.isDirectory);
           const replacements = new Map<string, string>([
             ["%n", file],
@@ -97,7 +98,7 @@ export const statCommand: RuntimeCommand = {
           appendStdout(`${output}\n`);
         } else {
           // Default format
-          const modeOctal = stat.mode.toString(8).padStart(4, "0");
+          const modeOctal = toOctalFixed(stat.mode, 4);
           const modeStr = formatMode(stat.mode, stat.isDirectory);
           appendStdout(
             `  File: ${file}\n  Size: ${stat.size}\t\tBlocks: ${Math.ceil(stat.size / 512)}\nAccess: (${modeOctal}/${modeStr})\nModify: ${stat.mtime.toISOString()}\n`,
