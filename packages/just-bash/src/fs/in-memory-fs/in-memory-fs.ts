@@ -69,11 +69,10 @@ const textEncoder = new TextEncoder();
 function isFileInit(
   value: FileContent | FileInit,
 ): value is FileInit {
+  // `instanceof Uint8Array` is unavailable in a compiled build; a byte buffer
+  // has no `content` key, so the key test alone separates the two arms.
   return (
-    typeof value === "object" &&
-    value !== null &&
-    !(value instanceof Uint8Array) &&
-    "content" in value
+    typeof value === "object" && value !== null && "content" in value
   );
 }
 
@@ -107,7 +106,7 @@ export class InMemoryFs implements IFileSystem {
   private wouldReleaseBytes(entry: FsEntry | undefined): number {
     const content = this.materializedContent(entry);
     if (content === null) return 0;
-    if (!(content instanceof Uint8Array)) return this.storedByteLength(content);
+    if (typeof content === "string") return this.storedByteLength(content);
     return this.referenceCount(content) === 1 ? content.byteLength : 0;
   }
 
@@ -141,7 +140,7 @@ export class InMemoryFs implements IFileSystem {
 
     const releasedBytes = this.wouldReleaseBytes(previous);
     const addedBytes =
-      nextContent instanceof Uint8Array
+      nextContent !== null && typeof nextContent !== "string"
         ? this.referenceCount(nextContent) > 0
           ? 0
           : nextContent.byteLength
@@ -152,10 +151,10 @@ export class InMemoryFs implements IFileSystem {
       );
     }
 
-    if (previousContent instanceof Uint8Array) {
+    if (previousContent !== null && typeof previousContent !== "string") {
       this.dropReference(previousContent);
     }
-    if (nextContent instanceof Uint8Array) {
+    if (nextContent !== null && typeof nextContent !== "string") {
       this.addReference(nextContent);
     }
     this.retainedBytes += addedBytes - releasedBytes;
@@ -178,7 +177,7 @@ export class InMemoryFs implements IFileSystem {
     content: FileContent,
     encoding?: BufferEncoding,
   ): number {
-    if (content instanceof Uint8Array) return content.byteLength;
+    if (typeof content !== "string") return content.byteLength;
     if (encoding === "hex") return Math.floor(content.length / 2);
     if (encoding === "base64") {
       const padding = content.endsWith("==")
@@ -256,7 +255,7 @@ export class InMemoryFs implements IFileSystem {
           // Extended init with metadata
           this.writeFileSync(path, value.content, undefined, {
             mode: value.mode,
-            mtime: value.mtime !== undefined ? new Date(value.mtime) : undefined,
+            mtime: value.mtime,
           });
         } else {
           // Simple content
@@ -285,7 +284,9 @@ export class InMemoryFs implements IFileSystem {
     path: string,
     content: FileContent,
     options?: WriteFileOptions | BufferEncoding,
-    metadata?: { mode?: number; mtime?: Date },
+    // `mtime` is epoch milliseconds, not a `Date`: an optional `Date` member
+    // makes the whole optional record an uncompilable union arm.
+    metadata?: { mode?: number; mtime?: number },
   ): void {
     validatePath(path, "write");
     const normalized = normalizePath(path);
@@ -303,7 +304,8 @@ export class InMemoryFs implements IFileSystem {
       type: "file",
       content: buffer,
       mode: metadata?.mode ?? DEFAULT_FILE_MODE,
-      mtime: metadata?.mtime ?? new Date(),
+      mtime:
+        metadata?.mtime !== undefined ? new Date(metadata.mtime) : new Date(),
     });
   }
 
@@ -314,7 +316,9 @@ export class InMemoryFs implements IFileSystem {
   writeFileLazy(
     path: string,
     lazy: () => string | Uint8Array,
-    metadata?: { mode?: number; mtime?: Date },
+    // `mtime` is epoch milliseconds, not a `Date`: an optional `Date` member
+    // makes the whole optional record an uncompilable union arm.
+    metadata?: { mode?: number; mtime?: number },
   ): void {
     validatePath(path, "write");
     const normalized = normalizePath(path);
@@ -324,7 +328,8 @@ export class InMemoryFs implements IFileSystem {
       type: "file",
       lazy,
       mode: metadata?.mode ?? DEFAULT_FILE_MODE,
-      mtime: metadata?.mtime ?? new Date(),
+      mtime:
+        metadata?.mtime !== undefined ? new Date(metadata.mtime) : new Date(),
     });
   }
 

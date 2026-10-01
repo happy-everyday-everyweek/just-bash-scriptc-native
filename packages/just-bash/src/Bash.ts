@@ -361,11 +361,11 @@ export class Bash {
       limitOptions.maxLoopIterations = options.maxLoopIterations;
     }
     this.limits = resolveLimits(limitOptions, options.executionLimitProfile);
-    const fs =
+    const fs: IFileSystem =
       options.fs ??
-      new InMemoryFs(options.files, {
+      (new InMemoryFs(options.files, {
         maxTotalBytes: this.limits.maxFileSystemBytes,
-      });
+      }) as unknown as IFileSystem);
     this.fs = fs;
 
     this.useDefaultLayout = !options.cwd && !options.files;
@@ -510,9 +510,17 @@ export class Bash {
       gid: this.state.virtualGid,
     });
 
-    if (cwd !== "/" && fs instanceof InMemoryFs) {
+    // Structural check instead of `instanceof`: only filesystems with a sync
+    // mkdir can be prepared this way, and `instanceof` on interface-typed
+    // values is unavailable in a compiled build.
+    const mkdirSync = (
+      fs as unknown as {
+        mkdirSync?: (path: string, options?: { recursive?: boolean }) => void;
+      }
+    ).mkdirSync;
+    if (cwd !== "/" && mkdirSync !== undefined) {
       try {
-        fs.mkdirSync(cwd, { recursive: true });
+        mkdirSync(cwd, { recursive: true });
       } catch {
         // Ignore errors
       }
@@ -822,8 +830,10 @@ export class Bash {
         ? getDefenseBoxInstance(this.defenseInDepthConfig)
         : null;
       const defenseHandle = defenseBox === null ? null : defenseBox.activate();
-      const defenseHandleLike =
-        defenseHandle as unknown as DefenseHandleLike | null;
+      let defenseHandleLike: DefenseHandleLike | null = null;
+      if (defenseHandle !== null) {
+        defenseHandleLike = defenseHandle as unknown as DefenseHandleLike;
+      }
 
       try {
         // Run execution inside defense-in-depth context if enabled
@@ -973,7 +983,9 @@ export class Bash {
         throw error;
       } finally {
         // Always deactivate defense-in-depth box when done
-        defenseHandle?.deactivate();
+        if (defenseHandle !== null) {
+          defenseHandle.deactivate();
+        }
       }
     } catch (error) {
       if (error instanceof ExecutionAbortedError) {

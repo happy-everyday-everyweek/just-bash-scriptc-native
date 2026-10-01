@@ -1100,8 +1100,10 @@ export async function applyRedirections(
   result: ExecResult,
   redirections: RedirectionNode[],
   targets: ExpandedRedirectTargets,
-  dupSources: PreparedDupSources = new Map(),
-  standardRoutes: Map<number, FdEntry> = new Map(),
+  // No defaults: a defaulted `Map` parameter is a union arm with no home in a
+  // compiled signature, and every call site passes both values already.
+  dupSources: PreparedDupSources,
+  standardRoutes: Map<number, FdEntry>,
   writeErrorCommand = "bash",
   omitShellPrefix = false,
 ): Promise<ExecResult> {

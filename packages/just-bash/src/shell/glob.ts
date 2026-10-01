@@ -11,6 +11,7 @@
 import type { DirentEntry, IFileSystem } from "../fs/interface.js";
 import { ExecutionLimitError } from "../interpreter/errors.js";
 import { createUserRegex, type RegexLike } from "../regex/index.js";
+import type { UserRegex } from "../regex/user-regex.js";
 import { DEFAULT_BATCH_SIZE } from "../utils/constants.js";
 import {
   findMatchingParen,
@@ -88,7 +89,7 @@ export class GlobExpander {
    * Throws an error if the limit is exceeded.
    */
   private checkOpsLimit(): void {
-    this.ops.count += 1;
+    this.ops.count = this.ops.count + 1;
     if (this.ops.count > this.maxOps) {
       throw new ExecutionLimitError(
         `Glob operation limit exceeded (${this.maxOps})`,
@@ -832,9 +833,11 @@ export class GlobExpander {
     return readdir(path);
   }
 
-  private patternToRegex(pattern: string): RegexLike {
+  private patternToRegex(pattern: string): UserRegex {
     const regex = this.patternToRegexStr(pattern);
-    return createUserRegex(`^${regex}$`) as unknown as RegexLike;
+    // Returned as the concrete class: a class instance does not width-coerce
+    // into the RegexLike interface at a compiled call site.
+    return createUserRegex(`^${regex}$`);
   }
 
   /**
@@ -990,7 +993,7 @@ export class GlobExpander {
           if (
             pattern.charAt(classEnd) === "[" &&
             classEnd + 1 < pattern.length &&
-            pattern[classEnd + 1] === ":"
+            pattern.charAt(classEnd + 1) === ":"
           ) {
             const posixEnd = pattern.indexOf(":]", classEnd + 2);
             if (posixEnd !== -1) {
@@ -1011,9 +1014,9 @@ export class GlobExpander {
         while (j < pattern.length && pattern.charAt(j) !== "]") {
           // Check for POSIX character class [[:name:]]
           if (
-            pattern[j] === "[" &&
+            pattern.charAt(j) === "[" &&
             j + 1 < pattern.length &&
-            pattern[j + 1] === ":"
+            pattern.charAt(j + 1) === ":"
           ) {
             const posixEnd = pattern.indexOf(":]", j + 2);
             if (posixEnd !== -1) {
@@ -1026,14 +1029,14 @@ export class GlobExpander {
           }
 
           // Handle escaped characters in character class
-          if (pattern[j] === "\\" && j + 1 < pattern.length) {
-            classContent += `\\${pattern[j + 1]}`;
+          if (pattern.charAt(j) === "\\" && j + 1 < pattern.length) {
+            classContent += `\\${pattern.charAt(j + 1)}`;
             j += 2;
             continue;
           }
 
           // Handle - : only escape if at start or end (literal), otherwise keep as range
-          if (pattern[j] === "-") {
+          if (pattern.charAt(j) === "-") {
             const atStart = j === classStartPos;
             const atEnd = j + 1 === classEnd;
             if (atStart || atEnd) {
@@ -1044,7 +1047,7 @@ export class GlobExpander {
               classContent += "-";
             }
           } else {
-            classContent += pattern[j];
+            classContent += pattern.charAt(j);
           }
           j++;
         }

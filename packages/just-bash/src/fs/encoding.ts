@@ -23,7 +23,7 @@ export function toBuffer(
   content: FileContent,
   encoding?: BufferEncoding,
 ): Uint8Array {
-  if (content instanceof Uint8Array) {
+  if (typeof content !== "string") {
     return content;
   }
 

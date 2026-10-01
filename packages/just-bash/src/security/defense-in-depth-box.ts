@@ -112,8 +112,9 @@ let nodeModuleClass: NodeModuleClass | null = null;
 // inert shim and dead-code-eliminates this branch via __BROWSER__.
 if (!IS_BROWSER) {
   try {
-    nodeModuleApi = nodeModule as unknown as NodeModuleApi;
-    nodeModuleClass = nodeModuleApi.Module ?? nodeModuleApi.default ?? null;
+    // `node:module` is not reachable from a statically compiled build, so the
+    // host module API is deliberately left uncaptured.
+    nodeModuleClass = null;
   } catch {
     // Not available (edge runtimes, restricted environments)
   }
@@ -302,8 +303,10 @@ export class DefenseInDepthBox {
    */
   private temporaryIntrinsicDescriptors: Array<{
     target: object;
-    prop: PropertyKey;
-    descriptor: PropertyDescriptor;
+    // `PropertyKey` and `PropertyDescriptor` members have no home in a compiled
+    // record; keys are stored as strings and descriptors as opaque values.
+    prop: string;
+    descriptor: unknown;
   }> = [];
   private violations: SecurityViolation[] = [];
   private activationTime = 0;
@@ -1216,7 +1219,11 @@ export class DefenseInDepthBox {
       ) {
         return;
       }
-      this.temporaryIntrinsicDescriptors.push({ target, prop, descriptor });
+      this.temporaryIntrinsicDescriptors.push({
+        target,
+        prop: String(prop),
+        descriptor,
+      });
       Object.defineProperty(target, prop, { ...descriptor, writable: false });
     };
 
@@ -1310,7 +1317,7 @@ export class DefenseInDepthBox {
       };
       this.temporaryIntrinsicDescriptors.push({
         target: owner,
-        prop,
+        prop: String(prop),
         descriptor,
       });
       Object.defineProperty(owner, prop, {
@@ -2280,7 +2287,11 @@ export class DefenseInDepthBox {
       const { target, prop, descriptor } =
         this.temporaryIntrinsicDescriptors[i];
       try {
-        Object.defineProperty(target, prop, descriptor);
+        Object.defineProperty(
+          target,
+          prop,
+          descriptor as unknown as PropertyDescriptor,
+        );
       } catch (e) {
         console.debug(
           `[DefenseInDepthBox] Could not restore temporary intrinsic ${String(prop)}:`,
