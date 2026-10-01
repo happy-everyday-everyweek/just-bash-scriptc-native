@@ -115,7 +115,7 @@ interface UserFuncRecord {
   params: string[];
   body: AstNode;
   closureKeys?: string[];
-  closureVals?: UserFuncRecord[];
+  closureVals?: QueryValue[];
 }
 
 class VarStore {
@@ -151,7 +151,13 @@ export interface QueryExecutionLimits {
   maxArrayElements?: number;
 }
 
-export type ResolvedQueryExecutionLimits = Required<QueryExecutionLimits>;
+export interface ResolvedQueryExecutionLimits {
+  maxIterations: number;
+  maxDepth: number;
+  maxStringLength: number;
+  maxOutputSize: number;
+  maxArrayElements: number;
+}
 
 export interface EvalContext {
   vars: VarStore;
@@ -2125,7 +2131,7 @@ function evalBuiltin(
           const cKeys = userFunc.closureKeys;
           const cVals = userFunc.closureVals;
           for (let ci = 0; ci < cKeys.length; ci++) {
-            newFuncs.set(cKeys[ci], cVals[ci]);
+            newFuncs.set(cKeys[ci], cVals[ci] as unknown as UserFuncRecord);
           }
         } else if (ctx.funcs) {
           for (const [bk, bv] of ctx.funcs) {

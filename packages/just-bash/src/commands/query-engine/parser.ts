@@ -80,7 +80,10 @@ const KEYWORDS: Map<string, TokenType> = new Map([
   ["def", "DEF"],
 ]);
 
-const KEYWORD_TOKEN_TYPES: Set<TokenType> = new Set(KEYWORDS.values());
+const KEYWORD_TOKEN_TYPES: TokenType[] = [];
+for (const keywordToken of KEYWORDS.values()) {
+  KEYWORD_TOKEN_TYPES.push(keywordToken);
+}
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -434,7 +437,7 @@ class Parser {
     const dot = this.peek(dotOffset);
     const next = this.peek(dotOffset + 1);
     if (next.type === "STRING") return true;
-    if (next.type === "IDENT" || KEYWORD_TOKEN_TYPES.has(next.type)) {
+    if (next.type === "IDENT" || KEYWORD_TOKEN_TYPES.indexOf(next.type) !== -1) {
       return next.pos === dot.pos + 1;
     }
     return false;
@@ -442,7 +445,7 @@ class Parser {
 
   private isIdentLike(): boolean {
     const t = this.peek().type;
-    return t === "IDENT" || KEYWORD_TOKEN_TYPES.has(t);
+    return t === "IDENT" || KEYWORD_TOKEN_TYPES.indexOf(t) !== -1;
   }
 
   private consumeFieldNameAfterDot(dotToken: Token): string | null {
@@ -451,7 +454,7 @@ class Parser {
       return this.advance().value as string;
     }
     if (
-      (next.type === "IDENT" || KEYWORD_TOKEN_TYPES.has(next.type)) &&
+      (next.type === "IDENT" || KEYWORD_TOKEN_TYPES.indexOf(next.type) !== -1) &&
       next.pos === dotToken.pos + 1
     ) {
       return this.advance().value as string;
@@ -562,7 +565,7 @@ class Parser {
 
     // Check for shorthand: $name or $name:pattern
     const tok = this.peek();
-    if (tok.type === "IDENT" || KEYWORD_TOKEN_TYPES.has(tok.type)) {
+    if (tok.type === "IDENT" || KEYWORD_TOKEN_TYPES.indexOf(tok.type) !== -1) {
       const name = tok.value as string;
       if (name.startsWith("$")) {
         this.advance();
