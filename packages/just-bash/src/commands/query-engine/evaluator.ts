@@ -111,14 +111,14 @@ function applySimpleMath(name: string, x: number): number | undefined {
   }
 }
 
-interface UserFuncRecord {
+export interface UserFuncRecord {
   params: string[];
   body: AstNode;
   closureKeys?: string[];
   closureVals?: QueryValue[];
 }
 
-class VarStore {
+export class VarStore {
   readonly keys: string[] = [];
   readonly vals: QueryValue[] = [];
   get(k: string): QueryValue | undefined {
