@@ -152,15 +152,17 @@ async function executeSubshellBody(
     // BreakError/ContinueError should NOT propagate out of subshell
     // They only affect loops within the subshell
     if (error instanceof BreakError || error instanceof ContinueError) {
+      const rawFlow = error as unknown;
+      const flowError = rawFlow as BreakError;
       output.append(
         "stdout",
-        error.stdout,
-        error.internalOutputAccounting.stdout,
+        flowError.stdout,
+        flowError.internalOutputAccounting.stdout,
       );
       output.append(
         "stderr",
-        error.stderr,
-        error.internalOutputAccounting.stderr,
+        flowError.stderr,
+        flowError.internalOutputAccounting.stderr,
       );
       return output.build(0);
     }

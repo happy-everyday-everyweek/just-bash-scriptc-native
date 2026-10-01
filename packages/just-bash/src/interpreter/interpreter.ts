@@ -392,14 +392,16 @@ export class Interpreter {
         }
         // Handle break/continue errors
         if (error instanceof BreakError || error instanceof ContinueError) {
+          const rawFlow = error as unknown;
+          const flowError = rawFlow as BreakError;
           // If we're inside a loop, propagate the error up (for eval/source inside loops)
           if (this.ctx.state.loopDepth > 0) {
-            error.prependOutput(output.stdout, output.stderr);
+            flowError.prependOutput(output.stdout, output.stderr);
             throw error;
           }
           // Outside loops (level exceeded loop depth), silently continue with next statement
-          output.append("stdout", error.stdout);
-          output.append("stderr", error.stderr);
+          output.append("stdout", flowError.stdout);
+          output.append("stderr", flowError.stderr);
           continue;
         }
         // Handle return - prepend accumulated output before propagating
@@ -966,6 +968,8 @@ export class Interpreter {
       // For break/continue, we still need to apply redirections before propagating
       // This handles cases like "break > file" where the file should be created
       if (error instanceof BreakError || error instanceof ContinueError) {
+        const rawFlow = error as unknown;
+        const flowError = rawFlow as BreakError;
         controlFlowError = error;
         cmdResult = OK; // break/continue have exit status 0
       } else {
