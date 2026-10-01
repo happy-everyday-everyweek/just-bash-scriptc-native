@@ -9,6 +9,7 @@ import {
   isSafeKey,
   nullPrototypeCopy,
   safeSet,
+  safeHasOwn,
 } from "./safe-object.js";
 import type { QueryValue } from "./value-operations.js";
 
@@ -64,7 +65,7 @@ export function setPath(
   const obj: Record<string, unknown> = rec
     ? nullPrototypeCopy(rec)
     : Object.create(null);
-  const currentVal = Object.hasOwn(obj, head) ? obj[head] : undefined;
+  const currentVal = safeHasOwn(obj, head as string) ? obj[head] : undefined;
   safeSet(obj, head, setPath(currentVal, rest, newVal));
   return obj;
 }
