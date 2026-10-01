@@ -223,7 +223,7 @@ export class InMemoryFs implements IFileSystem {
           // Extended init with metadata
           this.writeFileSync(path, value.content, undefined, {
             mode: value.mode,
-            mtime: value.mtime,
+            mtime: value.mtime !== undefined ? new Date(value.mtime) : undefined,
           });
         } else {
           // Simple content

@@ -124,18 +124,9 @@ export interface EnvAdapter {
 function withMockFetch(
   network: BashOptions["network"],
 ): BashOptions["network"] {
-  if (!network?.denyPrivateRanges || network._fetch) {
-    return network;
-  }
-  return {
-    ...network,
-    // These suites mock global fetch. The private-range-enforcing path uses
-    // guarded-fetch's own undici transport, so the mock has to be injected
-    // explicitly instead of read off the ambient global — otherwise these
-    // tests would fall through to the real network.
-    _fetch: (input: RequestInfo | URL, init?: RequestInit) =>
-      global.fetch(input, init),
-  };
+  // NetworkConfig no longer carries a `typeof fetch` override: the global
+  // fetch is an engine-ambient handle with no static lowering.
+  return network;
 }
 
 /**

@@ -150,7 +150,6 @@ export interface NetworkConfig {
    * requests on the private-range-enforcing path, which ignores
    * `globalThis.fetch`. DNS resolution and IP validation still run.
    */
-  _fetch?: typeof fetch;
 }
 
 /**

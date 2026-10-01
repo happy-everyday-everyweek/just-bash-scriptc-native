@@ -119,8 +119,6 @@ export function createSecureFetch(config: NetworkConfig): SecureFetch {
   }
 
   // Test-only transport override; see the pinned path below.
-  const injectedFetch = config._fetch;
-
   // Fail fast on invalid allow-list entries
   if (!config.dangerouslyAllowFullInternetAccess) {
     const errors = validateAllowList(entries);
@@ -279,7 +277,7 @@ export function createSecureFetch(config: NetworkConfig): SecureFetch {
       init.body = fetchOptions.body;
     }
     // @banned-pattern-ignore: audited unguarded transport, reachable only when private-range enforcement is disabled
-    const ambientFetch = injectedFetch ?? globalThis.fetch;
+    const ambientFetch = globalThis.fetch;
     return await ambientFetch(requestUrl, init);
   }
 
@@ -500,13 +498,10 @@ export function createSecureFetch(config: NetworkConfig): SecureFetch {
             // Pinning is promised here, so keep guarded-fetch's own undici
             // `fetch`: a host-wrapped `globalThis.fetch` can rebuild the init
             // and drop the `dispatcher`, reopening the rebinding window.
-            if (injectedFetch) {
-              fetchOptions.fetch = injectedFetch;
-            }
           } else {
             // No pinning promised; ambient fetch keeps host shims working.
             // @banned-pattern-ignore: audited no-pin path, reachable only when private-range enforcement is disabled
-            fetchOptions.fetch = injectedFetch ?? globalThis.fetch;
+            fetchOptions.fetch = globalThis.fetch;
             fetchOptions.dispatcher = null;
           }
 

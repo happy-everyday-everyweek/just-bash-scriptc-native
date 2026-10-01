@@ -295,7 +295,13 @@ export interface IFileSystem {
 export interface FileInit {
   content: FileContent;
   mode?: number;
-  mtime?: Date;
+  /**
+   * Last-modified time in epoch milliseconds.
+   *
+   * A number, not a `Date`: `Date | undefined` is a union arm with no home
+   * in a compiled union, so an optional Date member blocks the whole shape.
+   */
+  mtime?: number;
 }
 
 /**
