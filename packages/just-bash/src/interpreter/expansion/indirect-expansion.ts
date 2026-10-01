@@ -78,7 +78,7 @@ export async function handleIndirectArrayExpansion(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    dqPart.parts[0].operation?.type !== "Indirection"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "Indirection")
   ) {
     return null;
   }
@@ -376,7 +376,7 @@ export async function handleIndirectInAlternative(
   if (
     wordParts.length !== 1 ||
     wordParts[0].type !== "ParameterExpansion" ||
-    (wordParts[0].operation?.type !== "UseAlternative" &&
+    ((wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "UseAlternative" )&&
       wordParts[0].operation?.type !== "DefaultValue")
   ) {
     return null;
@@ -401,7 +401,7 @@ export async function handleIndirectInAlternative(
   if (
     innerDq.parts.length !== 1 ||
     innerDq.parts[0].type !== "ParameterExpansion" ||
-    innerDq.parts[0].operation?.type !== "Indirection"
+    (innerDq.parts[0].operation !== undefined && innerDq.parts[0].operation !== null && innerDq.parts[0].operation.type !== "Indirection")
   ) {
     return null;
   }
@@ -469,7 +469,7 @@ export async function handleIndirectionWithInnerAlternative(
   if (
     wordParts.length !== 1 ||
     wordParts[0].type !== "ParameterExpansion" ||
-    wordParts[0].operation?.type !== "Indirection"
+    (wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "Indirection")
   ) {
     return null;
   }
@@ -506,7 +506,7 @@ export async function handleIndirectionWithInnerAlternative(
   if (
     innerDq.parts.length !== 1 ||
     innerDq.parts[0].type !== "ParameterExpansion" ||
-    innerDq.parts[0].operation?.type !== "Indirection"
+    (innerDq.parts[0].operation !== undefined && innerDq.parts[0].operation !== null && innerDq.parts[0].operation.type !== "Indirection")
   ) {
     return null;
   }

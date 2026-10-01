@@ -148,13 +148,13 @@ export function analyzeWordParts(parts: WordPart[]): WordPartsAnalysis {
             }
             // Check for ${!prefix@} or ${!prefix*} inside double quotes
             if (
-              inner.operation?.type === "VarNamePrefix" ||
+              (inner.operation !== undefined && inner.operation !== null && inner.operation.type === "VarNamePrefix" )||
               inner.operation?.type === "ArrayKeys"
             ) {
               hasVarNamePrefixExpansion = true;
             }
             // Check for ${!var} indirect expansion inside double quotes
-            if (inner.operation?.type === "Indirection") {
+            if ((inner.operation !== undefined && inner.operation !== null && inner.operation.type === "Indirection")) {
               hasIndirection = true;
             }
           }
@@ -176,13 +176,13 @@ export function analyzeWordParts(parts: WordPart[]): WordPartsAnalysis {
       }
       // Check for unquoted ${!prefix@} or ${!prefix*}
       if (
-        part.operation?.type === "VarNamePrefix" ||
+        (part.operation !== undefined && part.operation !== null && part.operation.type === "VarNamePrefix" )||
         part.operation?.type === "ArrayKeys"
       ) {
         hasVarNamePrefixExpansion = true;
       }
       // Check for ${!var} indirect expansion
-      if (part.operation?.type === "Indirection") {
+      if ((part.operation !== undefined && part.operation !== null && part.operation.type === "Indirection")) {
         hasIndirection = true;
       }
     }

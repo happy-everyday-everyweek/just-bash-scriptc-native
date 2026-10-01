@@ -249,7 +249,7 @@ export function handleRead(
   const savedStdinFd = getFdEntry(ctx, fileDescriptor);
   const readsFromFd =
     fileDescriptor > 0 &&
-    !(savedStdinFd?.kind === "dup-in" && savedStdinFd.sourceFd === 0);
+    !((savedStdinFd !== undefined && savedStdinFd !== null && savedStdinFd.kind === "dup-in" )&& savedStdinFd.sourceFd === 0);
 
   if (readsFromFd) {
     const readable = readFd(ctx, fileDescriptor);

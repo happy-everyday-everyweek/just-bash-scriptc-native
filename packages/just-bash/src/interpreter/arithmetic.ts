@@ -515,7 +515,7 @@ async function evaluateArithmeticInternal(
       // Case 2: Associative array with variable name (no $ prefix) - A[K]
       if (
         isAssoc &&
-        expr.index?.type === "ArithVariable" &&
+        (expr.index !== undefined && expr.index !== null && expr.index.type === "ArithVariable" )&&
         !expr.index.hasDollarPrefix
       ) {
         return await lookupArrayValue(expr.index.name);
@@ -524,7 +524,7 @@ async function evaluateArithmeticInternal(
       // Case 3: Associative array with $ prefix - A[$key]
       if (
         isAssoc &&
-        expr.index?.type === "ArithVariable" &&
+        (expr.index !== undefined && expr.index !== null && expr.index.type === "ArithVariable" )&&
         expr.index.hasDollarPrefix
       ) {
         const expandedKey = await getVariable(ctx, expr.index.name);
@@ -666,7 +666,7 @@ async function evaluateArithmeticInternal(
             elementKey = expr.operand.stringKey;
           } else if (
             isAssoc &&
-            expr.operand.index?.type === "ArithVariable" &&
+            (expr.operand.index !== undefined && expr.operand.index !== null && expr.operand.index.type === "ArithVariable" )&&
             !expr.operand.index.hasDollarPrefix
           ) {
             // A[K]++ where K is without $ -> use "K" as literal key

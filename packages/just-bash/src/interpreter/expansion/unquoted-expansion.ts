@@ -200,7 +200,7 @@ export async function handleUnquotedArrayPatternReplacement(
     const p = wordParts[i];
     if (
       p.type === "ParameterExpansion" &&
-      p.operation?.type === "PatternReplacement"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "PatternReplacement")
     ) {
       const arrayMatch = p.parameter.match(
         /^([a-zA-Z_][a-zA-Z0-9_]*)\[([@*])\]$/,
@@ -383,7 +383,7 @@ export async function handleUnquotedArrayPatternRemoval(
     const p = wordParts[i];
     if (
       p.type === "ParameterExpansion" &&
-      p.operation?.type === "PatternRemoval"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "PatternRemoval")
     ) {
       const arrayMatch = p.parameter.match(
         /^([a-zA-Z_][a-zA-Z0-9_]*)\[([@*])\]$/,
@@ -535,7 +535,7 @@ export async function handleUnquotedPositionalPatternRemoval(
     if (
       p.type === "ParameterExpansion" &&
       (p.parameter === "@" || p.parameter === "*") &&
-      p.operation?.type === "PatternRemoval"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "PatternRemoval")
     ) {
       unquotedPosPatRemIdx = i;
       unquotedPosPatRemIsStar = p.parameter === "*";
@@ -674,7 +674,7 @@ export async function handleUnquotedPositionalSlicing(
     if (
       p.type === "ParameterExpansion" &&
       (p.parameter === "@" || p.parameter === "*") &&
-      p.operation?.type === "Substring"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "Substring")
     ) {
       unquotedSliceAtIndex = i;
       unquotedSliceIsStar = p.parameter === "*";
@@ -1064,7 +1064,7 @@ export function handleUnquotedVarNamePrefix(
   if (
     wordParts.length !== 1 ||
     wordParts[0].type !== "ParameterExpansion" ||
-    wordParts[0].operation?.type !== "VarNamePrefix"
+    (wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "VarNamePrefix")
   ) {
     return null;
   }
@@ -1135,7 +1135,7 @@ export function handleUnquotedArrayKeys(
   if (
     wordParts.length !== 1 ||
     wordParts[0].type !== "ParameterExpansion" ||
-    wordParts[0].operation?.type !== "ArrayKeys"
+    (wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "ArrayKeys")
   ) {
     return null;
   }

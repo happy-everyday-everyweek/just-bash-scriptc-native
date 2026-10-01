@@ -61,7 +61,7 @@ export async function handleArrayDefaultValue(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    (dqPart.parts[0].operation?.type !== "DefaultValue" &&
+    ((dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "DefaultValue" )&&
       dqPart.parts[0].operation?.type !== "UseAlternative" &&
       dqPart.parts[0].operation?.type !== "AssignDefault")
   ) {
@@ -216,7 +216,7 @@ export async function handleArrayPatternWithPrefixSuffix(
     const p = dqPart.parts[i];
     if (
       p.type === "ParameterExpansion" &&
-      (p.operation?.type === "PatternRemoval" ||
+      ((p.operation !== undefined && p.operation !== null && p.operation.type === "PatternRemoval" )||
         p.operation?.type === "PatternReplacement")
     ) {
       const match = p.parameter.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([@*])\]$/);
@@ -270,7 +270,7 @@ export async function handleArrayPatternWithPrefixSuffix(
   }
 
   // Apply operation to each element
-  if (arrayOperation?.type === "PatternRemoval") {
+  if ((arrayOperation !== undefined && arrayOperation !== null && arrayOperation.type === "PatternRemoval")) {
     const op = arrayOperation as PatternRemovalOp;
     // Build the regex pattern
     let regexStr = "";

@@ -333,7 +333,7 @@ async function prepareRedirectionsWithState(
   let stdin: string | undefined;
   let stdinSourceFd = -1;
   const initialStdin = standardRoutes.get(0);
-  if (initialStdin?.kind === "input") {
+  if ((initialStdin !== undefined && initialStdin !== null && initialStdin.kind === "input")) {
     stdin = initialStdin.content;
     stdinSourceFd = 0;
   } else if (initialStdin?.kind === "readwrite") {
@@ -410,7 +410,7 @@ async function prepareRedirectionsWithState(
   ): PreparedDupSource | null => {
     if (sourceFd < FIRST_USER_FD) {
       const entry = standardRoutes.get(sourceFd);
-      if (entry?.kind === "closed") return null;
+      if ((entry !== undefined && entry !== null && entry.kind === "closed")) return null;
       return entry
         ? {
             kind: "entry",

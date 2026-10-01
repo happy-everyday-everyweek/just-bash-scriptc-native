@@ -149,7 +149,7 @@ export async function handlePositionalSlicing(
     if (
       p.type === "ParameterExpansion" &&
       (p.parameter === "@" || p.parameter === "*") &&
-      p.operation?.type === "Substring"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "Substring")
     ) {
       sliceAtIndex = i;
       sliceIsStar = p.parameter === "*";
@@ -280,7 +280,7 @@ export async function handlePositionalPatternReplacement(
     if (
       p.type === "ParameterExpansion" &&
       (p.parameter === "@" || p.parameter === "*") &&
-      p.operation?.type === "PatternReplacement"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "PatternReplacement")
     ) {
       patReplAtIndex = i;
       patReplIsStar = p.parameter === "*";
@@ -488,7 +488,7 @@ export async function handlePositionalPatternRemoval(
     if (
       p.type === "ParameterExpansion" &&
       (p.parameter === "@" || p.parameter === "*") &&
-      p.operation?.type === "PatternRemoval"
+      (p.operation !== undefined && p.operation !== null && p.operation.type === "PatternRemoval")
     ) {
       patRemAtIndex = i;
       patRemIsStar = p.parameter === "*";

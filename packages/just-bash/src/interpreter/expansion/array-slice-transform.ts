@@ -51,7 +51,7 @@ export async function handleArraySlicing(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    dqPart.parts[0].operation?.type !== "Substring"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "Substring")
   ) {
     return null;
   }
@@ -170,7 +170,7 @@ export function handleArrayTransform(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    dqPart.parts[0].operation?.type !== "Transform"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "Transform")
   ) {
     return null;
   }

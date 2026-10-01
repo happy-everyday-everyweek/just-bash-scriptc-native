@@ -76,11 +76,12 @@ class SedParser {
     const addressResult = this.parseAddressRange();
 
     // Check for incomplete range error (e.g., "1,")
-    if (addressResult?.error) {
+    if (addressResult !== undefined && addressResult.error !== undefined) {
       return { command: null, error: addressResult.error };
     }
 
-    const address = addressResult?.address;
+    const address =
+      addressResult !== undefined ? addressResult.address : undefined;
 
     // Check for negation modifier (!)
     if (this.check(SedTokenType.NEGATION)) {

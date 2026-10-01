@@ -74,7 +74,7 @@ export async function handleArrayPatternReplacement(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    dqPart.parts[0].operation?.type !== "PatternReplacement"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "PatternReplacement")
   ) {
     return null;
   }
@@ -176,7 +176,7 @@ export async function handleArrayPatternRemoval(
   if (
     dqPart.parts.length !== 1 ||
     dqPart.parts[0].type !== "ParameterExpansion" ||
-    dqPart.parts[0].operation?.type !== "PatternRemoval"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type !== "PatternRemoval")
   ) {
     return null;
   }

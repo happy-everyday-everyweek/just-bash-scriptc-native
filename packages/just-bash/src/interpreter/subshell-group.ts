@@ -86,7 +86,7 @@ export async function executeSubshell(
     for (const [fd, parentEntry] of parentDescriptors) {
       const childEntry = getFdEntry(ctx, fd);
       const consumed =
-        parentEntry.kind === "input" && childEntry?.kind === "input"
+        parentEntry.kind === "input" && (childEntry !== undefined && childEntry !== null && childEntry.kind === "input")
           ? parentEntry.content.length - childEntry.content.length
           : parentEntry.kind === "readwrite" &&
               childEntry?.kind === "readwrite" &&

@@ -417,7 +417,7 @@ function handleVarNamePrefixExpansion(
   if (
     dqPart.parts.length === 1 &&
     dqPart.parts[0].type === "ParameterExpansion" &&
-    dqPart.parts[0].operation?.type === "VarNamePrefix"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type === "VarNamePrefix")
   ) {
     const op = dqPart.parts[0].operation;
     const matchingVars = getVarNamesWithPrefix(ctx, op.prefix);
@@ -435,7 +435,7 @@ function handleVarNamePrefixExpansion(
   if (
     dqPart.parts.length === 1 &&
     dqPart.parts[0].type === "ParameterExpansion" &&
-    dqPart.parts[0].operation?.type === "ArrayKeys"
+    (dqPart.parts[0].operation !== undefined && dqPart.parts[0].operation !== null && dqPart.parts[0].operation.type === "ArrayKeys")
   ) {
     const op = dqPart.parts[0].operation;
     const elements = getArrayElements(ctx, op.array);
