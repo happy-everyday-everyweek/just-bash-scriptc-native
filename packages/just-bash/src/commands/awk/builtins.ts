@@ -664,7 +664,7 @@ export function formatPrintf(
           if (
             j + 1 < format.length &&
             ((format.charAt(j) === "h" && format.charAt(j + 1) === "h") ||
-              (format[j] === "l" && format[j + 1] === "l"))
+              (format.charAt(j) === "l" && format.charAt(j + 1) === "l"))
           ) {
             j += 2;
             return;

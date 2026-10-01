@@ -110,7 +110,7 @@ export {
 async function expandWordPartsAsync(
   ctx: InterpreterContext,
   parts: WordPart[],
-  inDoubleQuotes = false,
+  inDoubleQuotes: boolean,
 ): Promise<string> {
   const results: string[] = [];
   for (const part of parts) {
@@ -212,7 +212,7 @@ export async function expandWordForRegex(
       parts.push(part.value);
     } else if (part.type === "DoubleQuoted") {
       // Double-quoted: expand contents
-      const expanded = await expandWordPartsAsync(ctx, part.parts);
+      const expanded = await expandWordPartsAsync(ctx, part.parts, false);
       parts.push(expanded);
     } else if (part.type === "TildeExpansion") {
       // Tilde expansion on RHS of =~ is treated as literal (regex chars escaped)
@@ -255,7 +255,7 @@ export async function expandWordForPattern(
       parts.push(escapeGlobChars(part.value));
     } else if (part.type === "DoubleQuoted") {
       // Double-quoted: expand contents and escape for literal matching
-      const expanded = await expandWordPartsAsync(ctx, part.parts);
+      const expanded = await expandWordPartsAsync(ctx, part.parts, false);
       parts.push(escapeGlobChars(expanded));
     } else {
       // Other parts: expand normally
@@ -290,7 +290,7 @@ async function expandWordForGlobbing(
       }
     } else if (part.type === "DoubleQuoted") {
       // Double-quoted: expand contents and escape glob metacharacters
-      const expanded = await expandWordPartsAsync(ctx, part.parts);
+      const expanded = await expandWordPartsAsync(ctx, part.parts, false);
       parts.push(escapeGlobChars(expanded));
     } else if (part.type === "Glob") {
       // Glob pattern: expand variables and command substitutions within extglob patterns
@@ -501,7 +501,8 @@ function createWordGlobDeps(): WordGlobExpansionDeps {
     expandWordAsync,
     expandWordForGlobbing,
     expandWordWithBracesAsync,
-    expandWordPartsAsync,
+    expandWordPartsAsync: (ctxArg, partsArg) =>
+      expandWordPartsAsync(ctxArg, partsArg, false),
     expandPart: (partCtx, part) => expandPart(partCtx, part),
     expandParameterAsync: (partCtx, part) => expandParameterAsync(partCtx, part),
     hasBraceExpansion,

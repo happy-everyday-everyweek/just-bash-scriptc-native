@@ -160,7 +160,7 @@ export async function expandSubscriptForAssocArray(
         while (j < inner.length && depth > 0) {
           if (inner.charAt(j) === "(" && inner.charAt(j - 1) === "$") {
             depth++;
-          } else if (inner[j] === "(") {
+          } else if (inner.charAt(j) === "(") {
             depth++;
           } else if (inner[j] === ")") {
             depth--;
