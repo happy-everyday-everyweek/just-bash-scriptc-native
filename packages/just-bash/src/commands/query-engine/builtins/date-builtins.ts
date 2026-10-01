@@ -33,7 +33,7 @@ function parseIsoUtc(value: string): Date {
 
   const [, year, month, day, hour, minute, second] = match.map(Number);
   const milliseconds = Date.UTC(year, month - 1, day, hour, minute, second);
-  if (!Number.isFinite(milliseconds)) return null;
+  if (!Number.isFinite(milliseconds)) return new Date(Number.NaN);
   const date = new Date(milliseconds);
   if (
     date.getUTCFullYear() !== year ||
@@ -43,7 +43,7 @@ function parseIsoUtc(value: string): Date {
     date.getUTCMinutes() !== minute ||
     date.getUTCSeconds() !== second
   ) {
-    return null;
+    return new Date(Number.NaN);
   }
   return date;
 }
