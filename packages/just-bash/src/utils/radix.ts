@@ -41,3 +41,18 @@ export function hexFromBytes(u: Uint8Array): string {
   for (let i = 0; i < u.length; i++) out += toHexLower(u[i]);
   return out;
 }
+
+
+/** Lowercase rendering of a non-negative integer in `radix` (2..36). */
+export function toRadixString(n: number, radix: number): string {
+  let v = Math.floor(Math.abs(n));
+  if (!(v > 0)) return "0";
+  const digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+  let out = "";
+  while (v > 0) {
+    const d = v % radix;
+    out = digits.charAt(d) + out;
+    v = (v - d) / radix;
+  }
+  return out;
+}

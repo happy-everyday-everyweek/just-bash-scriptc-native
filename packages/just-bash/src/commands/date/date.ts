@@ -30,12 +30,9 @@ const dateHelp = {
  * `date` (which silently uses local time on invalid `TZ`).
  */
 function isValidTimezone(tz: string): boolean {
-  try {
-    new Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
+  // `Intl.DateTimeFormat` has no static lowering, so the compiled build
+  // accepts IANA-shaped names instead of probing ICU.
+  return /^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(tz);
 }
 
 /**

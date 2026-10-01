@@ -1,3 +1,4 @@
+import { toRadixString } from "../../utils/radix.js";
 import { parseFloatDecimal, parseIntDecimal } from "../../utils/num-parse.js";
 /**
  * AWK Built-in Functions
@@ -903,7 +904,7 @@ export function formatPrintf(
         case "X": {
           let num = val !== undefined ? Math.floor(Number(val)) : 0;
           if (Number.isNaN(num)) num = 0;
-          let digits = Math.abs(num).toString(16);
+          let digits = toRadixString(num, 16);
           if (spec === "X") digits = digits.toUpperCase();
 
           // Precision for hex means minimum number of digits (zero-padded)
@@ -933,7 +934,7 @@ export function formatPrintf(
         case "o": {
           let num = val !== undefined ? Math.floor(Number(val)) : 0;
           if (Number.isNaN(num)) num = 0;
-          let digits = Math.abs(num).toString(8);
+          let digits = toRadixString(num, 8);
 
           // Precision for octal means minimum number of digits (zero-padded)
           if (precision) {

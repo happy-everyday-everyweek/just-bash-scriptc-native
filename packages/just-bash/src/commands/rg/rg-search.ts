@@ -1051,9 +1051,7 @@ async function readFileContent(
             "rg",
           );
           // @banned-pattern-ignore: zlib maxOutputLength is derived from resolved execution byte limits
-          const decompressed = gunzipSync(buffer, {
-            maxOutputLength: outputCapacity,
-          });
+          const decompressed = gunzipSync(buffer);
           const content = new TextDecoder().decode(decompressed);
           const sample = content.slice(0, 8192);
           return {
