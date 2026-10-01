@@ -69,3 +69,13 @@ export function setFromArray<T>(values: T[]): Set<T> {
   for (const v of values) out.add(v);
   return out;
 }
+
+/** Keys of a map as an array (`Map.prototype.keys` has no lowering). */
+export function mapKeys<K, V>(src: Map<K, V> | undefined): K[] {
+  const out: K[] = [];
+  if (src === undefined) return out;
+  src.forEach((_value, key) => {
+    out.push(key);
+  });
+  return out;
+}

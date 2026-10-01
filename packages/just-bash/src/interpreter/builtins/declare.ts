@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 import { parseIntDecimal } from "../../utils/num-parse.js";
 /**
  * declare/typeset - Declare variables and give them attributes
@@ -348,7 +349,7 @@ export async function handleDeclare(
   if (functionNamesOnly) {
     if (processedArgs.length === 0) {
       // List all function names in sorted order
-      const funcNames = Array.from(ctx.state.functions.keys()).sort();
+      const funcNames = mapKeys(ctx.state.functions).sort();
       let stdout = "";
       for (const name of funcNames) {
         stdout += `declare -f ${name}\n`;
@@ -373,7 +374,7 @@ export async function handleDeclare(
     if (processedArgs.length === 0) {
       // List all function definitions - we don't store source, so just list names
       let stdout = "";
-      const funcNames = Array.from(ctx.state.functions.keys()).sort();
+      const funcNames = mapKeys(ctx.state.functions).sort();
       for (const name of funcNames) {
         // Without source tracking, we can't print the full definition
         // Just print the function name declaration

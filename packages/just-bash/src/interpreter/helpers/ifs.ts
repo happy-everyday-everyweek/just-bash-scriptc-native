@@ -352,7 +352,7 @@ export function splitByIfsForExpansionEx(
     words.push("");
     pos++;
     // Skip any whitespace after the delimiter
-    while (pos < value.length && whitespace.has(value[pos])) {
+    while (pos < value.length && whitespace.has(value.charAt(pos))) {
       pos++;
     }
   }
@@ -391,12 +391,12 @@ export function splitByIfsForExpansionEx(
       pos++;
 
       // Skip whitespace after non-whitespace delimiter
-      while (pos < value.length && whitespace.has(value[pos])) {
+      while (pos < value.length && whitespace.has(value.charAt(pos))) {
         pos++;
       }
 
       // Check for more non-whitespace delimiters (creates empty fields)
-      while (pos < value.length && nonWhitespace.has(value[pos])) {
+      while (pos < value.length && nonWhitespace.has(value.charAt(pos))) {
         // Empty field for this delimiter
         assertIfsPushAllowed(words.length, maxArrayElements);
         words.push("");

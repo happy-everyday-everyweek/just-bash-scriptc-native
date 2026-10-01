@@ -1,3 +1,4 @@
+import { mapKeys } from "../utils/bytes.js";
 import { copyMap } from "../utils/bytes.js";
 /**
  * Interpreter - AST Execution Engine
@@ -766,7 +767,7 @@ export class Interpreter {
         "export",
         "readonly",
       ]);
-    const tempExportedVars = Array.from(tempAssignments.keys());
+    const tempExportedVars = mapKeys(tempAssignments);
     if (tempExportedVars.length > 0 && !isLiteralAssignmentBuiltinForExport) {
       this.ctx.state.tempExportedVars =
         this.ctx.state.tempExportedVars || new Set();

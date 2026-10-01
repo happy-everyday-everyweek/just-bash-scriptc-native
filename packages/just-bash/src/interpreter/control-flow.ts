@@ -245,7 +245,7 @@ async function executeForBody(
     }
   }
 
-  ctx.state.loopDepth++;
+  ctx.state.loopDepth = ctx.state.loopDepth + 1;
   try {
     for (const value of words) {
       iterations++;
@@ -283,7 +283,7 @@ async function executeForBody(
       }
     }
   } finally {
-    ctx.state.loopDepth--;
+    ctx.state.loopDepth = ctx.state.loopDepth - 1;
   }
 
   // Note: In bash, the loop variable persists after the loop with its last value
@@ -319,7 +319,7 @@ async function executeCStyleForBody(
     await evaluateArithmetic(ctx, node.init.expression);
   }
 
-  ctx.state.loopDepth++;
+  ctx.state.loopDepth = ctx.state.loopDepth + 1;
   try {
     while (true) {
       iterations++;
@@ -377,7 +377,7 @@ async function executeCStyleForBody(
       }
     }
   } finally {
-    ctx.state.loopDepth--;
+    ctx.state.loopDepth = ctx.state.loopDepth - 1;
   }
 
   return output.build(exitCode);
@@ -410,7 +410,7 @@ async function executeWhileBody(
     ctx.state.groupStdin = loopStdin.stdin;
   }
 
-  ctx.state.loopDepth++;
+  ctx.state.loopDepth = ctx.state.loopDepth + 1;
   try {
     while (true) {
       iterations++;
@@ -493,7 +493,7 @@ async function executeWhileBody(
       }
     }
   } finally {
-    ctx.state.loopDepth--;
+    ctx.state.loopDepth = ctx.state.loopDepth - 1;
     if (loopStdin.owns) {
       ctx.state.groupStdin = savedGroupStdin;
     }
@@ -529,7 +529,7 @@ async function executeUntilBody(
     ctx.state.groupStdin = loopStdin.stdin;
   }
 
-  ctx.state.loopDepth++;
+  ctx.state.loopDepth = ctx.state.loopDepth + 1;
   try {
     while (true) {
       iterations++;
@@ -571,7 +571,7 @@ async function executeUntilBody(
       }
     }
   } finally {
-    ctx.state.loopDepth--;
+    ctx.state.loopDepth = ctx.state.loopDepth - 1;
     if (loopStdin.owns) {
       ctx.state.groupStdin = savedGroupStdin;
     }

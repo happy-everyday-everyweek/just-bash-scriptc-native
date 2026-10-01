@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 /**
  * compgen - Generate completion matches
  *
@@ -710,7 +711,7 @@ function getVariableNames(
       candidates.add(key);
     }
   }
-  for (const name of ctx.state.arrays?.keys() ?? []) candidates.add(name);
+  for (const name of mapKeys(ctx.state.arrays)) candidates.add(name);
   return candidates.build();
 }
 

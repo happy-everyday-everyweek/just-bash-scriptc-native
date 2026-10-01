@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 /**
  * Declare Print Mode Functions
  *
@@ -189,7 +190,7 @@ export function printAllVariables(
     if (key.startsWith("BASH_")) continue;
     varNames.add(key);
   }
-  for (const name of ctx.state.arrays?.keys() ?? []) varNames.add(name);
+  for (const name of mapKeys(ctx.state.arrays)) varNames.add(name);
 
   // Also include local variables if we're in a function scope
   if (ctx.state.localVarDepth) {

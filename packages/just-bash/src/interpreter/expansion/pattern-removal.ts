@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 /**
  * Pattern Removal Helpers
  *
@@ -70,7 +71,7 @@ export function getVarNamesWithPrefix(
   for (const name of ctx.state.env.keys()) {
     if (name.startsWith(prefix)) matchingVars.add(name);
   }
-  for (const name of ctx.state.arrays?.keys() ?? []) {
+  for (const name of mapKeys(ctx.state.arrays)) {
     if (name.startsWith(prefix)) matchingVars.add(name);
   }
 

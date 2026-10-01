@@ -1,3 +1,4 @@
+import { mapKeys } from "../utils/bytes.js";
 /**
  * Subshell, Group, and Script Execution
  *
@@ -58,7 +59,7 @@ export async function executeSubshell(
 ): Promise<ExecResult> {
   const parentLoopDepth = ctx.state.loopDepth;
   const parentDescriptors = new Map<number, FdEntry>();
-  for (const fd of ctx.state.fileDescriptors?.keys() ?? []) {
+  for (const fd of mapKeys(ctx.state.fileDescriptors)) {
     const entry = getFdEntry(ctx, fd);
     if (entry) parentDescriptors.set(fd, entry);
   }

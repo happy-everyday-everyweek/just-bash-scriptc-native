@@ -539,7 +539,7 @@ function assertExtglobDepth(pattern: string, maximum: number): void {
       continue;
     }
     if (pattern.charAt(i) === "(") {
-      const isExtglob = i > 0 && "@*+?!".includes(pattern[i - 1]);
+      const isExtglob = i > 0 && "@*+?!".includes(pattern.charAt(i - 1));
       groups.push(isExtglob);
       if (isExtglob) depth++;
       if (depth > maximum) {
@@ -548,7 +548,7 @@ function assertExtglobDepth(pattern: string, maximum: number): void {
           "recursion",
         );
       }
-    } else if (pattern[i] === ")" && groups.length > 0) {
+    } else if (pattern.charAt(i) === ")" && groups.length > 0) {
       if (groups.pop()) depth--;
     }
   }
@@ -682,7 +682,7 @@ function findMatchingParen(pattern: string, openIdx: number): number {
   let depth = 1;
   let i = openIdx + 1;
   while (i < pattern.length && depth > 0) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
     if (c === "\\") {
       i += 2; // Skip escaped char
       continue;
@@ -753,14 +753,14 @@ function computePatternLength(
   let i = 0;
 
   while (i < pattern.length) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
 
     // Check for extglob patterns
     if (
       extglob &&
       (c === "@" || c === "*" || c === "+" || c === "?" || c === "!") &&
       i + 1 < pattern.length &&
-      pattern[i + 1] === "("
+      pattern.charAt(i + 1) === "("
     ) {
       const closeIdx = findMatchingParen(pattern, i + 1);
       if (closeIdx !== -1) {

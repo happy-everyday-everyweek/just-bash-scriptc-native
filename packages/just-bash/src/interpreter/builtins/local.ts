@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 import { parseIntDecimal } from "../../utils/num-parse.js";
 /**
  * local - Declare local variables in functions builtin
@@ -85,7 +86,7 @@ export async function handleLocal(
   if (processedArgs.length === 0) {
     let stdout = "";
     // Get the names of local variables in current scope
-    const localNames = Array.from(currentScope.keys()).sort();
+    const localNames = mapKeys(currentScope).sort();
 
     for (const name of localNames) {
       const value = ctx.state.env.get(name);

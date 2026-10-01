@@ -99,7 +99,7 @@ export async function handleSource(
   const savedSource = ctx.state.currentSource;
 
   const cleanup = (): void => {
-    ctx.state.sourceDepth--;
+    ctx.state.sourceDepth = ctx.state.sourceDepth - 1;
     ctx.state.currentSource = savedSource;
     // Restore positional parameters if we changed them
     if (sourceArgs.length > 1) {
@@ -113,9 +113,9 @@ export async function handleSource(
     }
   };
 
-  ctx.state.sourceDepth++;
+  ctx.state.sourceDepth = ctx.state.sourceDepth + 1;
   if (ctx.state.sourceDepth > ctx.limits.maxSourceDepth) {
-    ctx.state.sourceDepth--;
+    ctx.state.sourceDepth = ctx.state.sourceDepth - 1;
     throw new ExecutionLimitError(
       `source: maximum nesting depth (${ctx.limits.maxSourceDepth}) exceeded, increase executionLimits.maxSourceDepth`,
       "recursion",

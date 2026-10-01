@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 import { copyStringMap } from "../../utils/bytes.js";
 /**
  * Array helper functions for the interpreter.
@@ -142,7 +143,7 @@ export function getArrayIndices(
   ctx: InterpreterContext,
   arrayName: string,
 ): number[] {
-  const indices = Array.from(getArray(ctx, arrayName)?.elements.keys() ?? [])
+  const indices = mapKeys(getArray(ctx, arrayName)?.elements)
     .filter((key) => /^(0|[1-9]\d*)$/.test(key))
     .map(Number);
 
@@ -168,7 +169,7 @@ export function getAssocArrayKeys(
   ctx: InterpreterContext,
   arrayName: string,
 ): string[] {
-  return Array.from(getArray(ctx, arrayName)?.elements.keys() ?? []).sort();
+  return mapKeys(getArray(ctx, arrayName)?.elements).sort();
 }
 
 /**

@@ -1,3 +1,4 @@
+import { mapKeys } from "../../utils/bytes.js";
 /**
  * complete - Set and display programmable completion specifications
  *
@@ -236,7 +237,7 @@ function printCompletionSpecs(
   }
 
   const output: string[] = [];
-  const targetCommands = commands || Array.from(specs.keys());
+  const targetCommands = commands || mapKeys(specs);
 
   for (const cmd of targetCommands) {
     const spec = specs.get(cmd);

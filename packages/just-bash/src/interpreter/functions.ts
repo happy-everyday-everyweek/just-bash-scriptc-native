@@ -53,9 +53,9 @@ export async function callFunction(
   /** A redirection on the call site (`f < file`) gave the function its own fd 0. */
   stdinRedirected = false,
 ): Promise<ExecResult> {
-  ctx.state.callDepth++;
+  ctx.state.callDepth = ctx.state.callDepth + 1;
   if (ctx.state.callDepth > ctx.limits.maxCallDepth) {
-    ctx.state.callDepth--;
+    ctx.state.callDepth = ctx.state.callDepth - 1;
     throwExecutionLimit(
       `${func.name}: maximum recursion depth (${ctx.limits.maxCallDepth}) exceeded, increase executionLimits.maxCallDepth`,
       "recursion",
@@ -178,7 +178,7 @@ export async function callFunction(
     ctx.state.callLineStack?.shift();
     ctx.state.sourceStack?.shift();
 
-    ctx.state.callDepth--;
+    ctx.state.callDepth = ctx.state.callDepth - 1;
   };
 
   let prepared: PreparedRedirections | null = null;
