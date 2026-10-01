@@ -3,7 +3,6 @@ import {
   unsafeBytesFromLatin1,
   utf8ByteLength,
 } from "../../encoding.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
 import { fromBuffer, getEncoding, toBuffer } from "../encoding.js";
 import type {
   BufferEncoding,
@@ -216,10 +215,7 @@ export class InMemoryFs implements IFileSystem {
 
     if (initialFiles) {
       for (const [path, value] of Object.entries(initialFiles)) {
-        if (typeof value === "function") {
-          // Lazy file - store provider function, called on first read
-          this.writeFileLazy(path, value);
-        } else if (isFileInit(value)) {
+        if (isFileInit(value)) {
           // Extended init with metadata
           this.writeFileSync(path, value.content, undefined, {
             mode: value.mode,
@@ -280,7 +276,7 @@ export class InMemoryFs implements IFileSystem {
    */
   writeFileLazy(
     path: string,
-    lazy: () => string | Uint8Array | Promise<string | Uint8Array>,
+    lazy: () => string | Uint8Array,
     metadata?: { mode?: number; mtime?: Date },
   ): void {
     validatePath(path, "write");
@@ -303,11 +299,10 @@ export class InMemoryFs implements IFileSystem {
     path: string,
     entry: LazyFileEntry,
   ): Promise<FileEntry> {
-    // Providers are host-supplied code; without the trusted scope, real
-    // async I/O would trip the sandbox blocked-globals traps.
-    const content = await DefenseInDepthBox.runTrustedAsync(async () =>
-      entry.lazy(),
-    );
+    // Providers are synchronous by construction (see LazyFileEntry). The
+    // trusted-scope wrapper is skipped: AsyncLocalStorage is unavailable in a
+    // statically compiled build, so the wrapper never had an effect there.
+    const content = entry.lazy();
     const buffer =
       typeof content === "string" ? textEncoder.encode(content) : content;
     const materialized: FileEntry = {

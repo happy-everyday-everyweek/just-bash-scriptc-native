@@ -2408,3 +2408,31 @@ export async function runUntrustedTask(
     fn,
   );
 }
+
+/**
+ * Static members cannot be reached through the class value from a compiled
+ * call site, so the entry points used outside this module are re-exported as
+ * module-level functions.
+ */
+const defenseBoxStatics = DefenseInDepthBox as unknown as {
+  getInstance(config?: DefenseInDepthConfig | boolean): DefenseInDepthBox;
+  isInSandboxedContext(): boolean;
+  getCurrentExecutionId(): string | undefined;
+};
+
+/** Singleton lookup without touching the class value. */
+export function getDefenseBoxInstance(
+  config?: DefenseInDepthConfig | boolean,
+): DefenseInDepthBox {
+  return defenseBoxStatics.getInstance(config);
+}
+
+/** True while an execution context is active, without touching the class value. */
+export function defenseIsInSandboxedContext(): boolean {
+  return defenseBoxStatics.isInSandboxedContext();
+}
+
+/** Current execution id, without touching the class value. */
+export function defenseCurrentExecutionId(): string | undefined {
+  return defenseBoxStatics.getCurrentExecutionId();
+}

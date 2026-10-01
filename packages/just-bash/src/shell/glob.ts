@@ -55,7 +55,9 @@ export class GlobExpander {
   constructor(
     private fs: IFileSystem,
     private cwd: string,
-    env?: Map<string, string>,
+    // Required, not optional: `Map<...> | undefined` is a union arm with no
+    // home in a compiled union, which would reject the whole class.
+    env: Map<string, string>,
     options?: GlobOptions | boolean, // boolean for backwards compatibility (globstar)
   ) {
     if (typeof options === "boolean") {
@@ -74,7 +76,7 @@ export class GlobExpander {
       this.maxOps = 100000;
     }
     // Parse GLOBIGNORE if set
-    const globignore = env?.get("GLOBIGNORE");
+    const globignore = env.get("GLOBIGNORE");
     if (globignore !== undefined && globignore !== "") {
       this.hasGlobignore = true;
       this.globignorePatterns = splitGlobignorePatterns(globignore);

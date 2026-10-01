@@ -97,7 +97,7 @@ export function fromBuffer(
     return result;
   }
   // Default to UTF-8 for text content
-  return textDecoder.decode(buffer);
+  return decodeUtf8Bytes(buffer);
 }
 
 /**
@@ -113,4 +113,58 @@ export function getEncoding(
     return options as BufferEncoding;
   }
   return options.encoding ?? undefined;
+}
+
+/**
+ * Decode UTF-8 bytes by hand (`TextDecoder.decode` has no scriptc lowering).
+ * Invalid sequences are replaced with U+FFFD, matching the forgiving decoder.
+ */
+function decodeUtf8Bytes(buffer: Uint8Array): string {
+  let out = "";
+  let i = 0;
+  while (i < buffer.length) {
+    const b0 = buffer[i];
+    if (b0 < 0x80) {
+      out += String.fromCharCode(b0);
+      i += 1;
+    } else if (b0 < 0xc0) {
+      out += "\uFFFD";
+      i += 1;
+    } else if (b0 < 0xe0) {
+      if (i + 1 >= buffer.length) {
+        out += "\uFFFD";
+        i += 1;
+      } else {
+        const cp = ((b0 & 0x1f) << 6) | (buffer[i + 1] & 0x3f);
+        out += String.fromCodePoint(cp);
+        i += 2;
+      }
+    } else if (b0 < 0xf0) {
+      if (i + 2 >= buffer.length) {
+        out += "\uFFFD";
+        i += 1;
+      } else {
+        const cp =
+          ((b0 & 0x0f) << 12) |
+          ((buffer[i + 1] & 0x3f) << 6) |
+          (buffer[i + 2] & 0x3f);
+        out += String.fromCodePoint(cp);
+        i += 3;
+      }
+    } else {
+      if (i + 3 >= buffer.length) {
+        out += "\uFFFD";
+        i += 1;
+      } else {
+        const cp =
+          ((b0 & 0x07) << 18) |
+          ((buffer[i + 1] & 0x3f) << 12) |
+          ((buffer[i + 2] & 0x3f) << 6) |
+          (buffer[i + 3] & 0x3f);
+        out += String.fromCodePoint(cp);
+        i += 4;
+      }
+    }
+  }
+  return out;
 }

@@ -1,7 +1,4 @@
-import {
-  DefenseInDepthBox,
-  SecurityViolationError,
-} from "./defense-in-depth-box.js";
+import { SecurityViolationError, defenseCurrentExecutionId, defenseIsInSandboxedContext } from "./defense-in-depth-box.js";
 
 /**
  * Fail closed when execution is expected to run inside defense async context.
@@ -12,7 +9,7 @@ export function assertDefenseContext(
   phase: string,
 ): void {
   if (!requireDefenseContext) return;
-  if (DefenseInDepthBox.isInSandboxedContext()) return;
+  if (defenseIsInSandboxedContext()) return;
 
   const message = `${component} ${phase} attempted outside defense context`;
   throw new SecurityViolationError(message, {
@@ -21,7 +18,7 @@ export function assertDefenseContext(
     message,
     path: "DefenseInDepthBox.context",
     stack: "",
-    executionId: DefenseInDepthBox.getCurrentExecutionId(),
+    executionId: defenseCurrentExecutionId(),
   });
 }
 
@@ -66,7 +63,8 @@ export function bindDefenseContextCallback<TArgs extends unknown[], TResult>(
   if (!requireDefenseContext) {
     return guarded;
   }
-  return DefenseInDepthBox.bindCurrentContext(guarded) as (
-    ...args: TArgs
-  ) => TResult;
+  // A statically compiled build has no AsyncLocalStorage, so there is no
+  // ambient defense context a callback could be bound to: the guard installed
+  // above is the whole contract in this build.
+  return guarded;
 }

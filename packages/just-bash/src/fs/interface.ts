@@ -56,7 +56,14 @@ export interface SymlinkEntry {
 
 export interface LazyFileEntry {
   type: "file";
-  lazy: () => string | Uint8Array | Promise<string | Uint8Array>;
+  /**
+   * Provider for the file content, evaluated on the first read.
+   *
+   * The return type stays synchronous on purpose: a function member whose
+   * return type contains `Promise<...>` makes the enclosing union arm unusable
+   * as an index-signature or Map value in a statically compiled build.
+   */
+  lazy: () => string | Uint8Array;
   mode: number;
   mtime: Date;
 }

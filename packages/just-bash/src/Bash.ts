@@ -67,7 +67,7 @@ import {
 import { LexerError } from "./parser/lexer.js";
 import { type ParseException, parse } from "./parser/parser.js";
 import {
-  DefenseInDepthBox,
+  getDefenseBoxInstance,
   SecurityViolationError,
 } from "./security/defense-in-depth-box.js";
 import type { DefenseInDepthConfig } from "./security/types.js";
@@ -77,6 +77,7 @@ import type {
   BashTransformResult,
   TransformPlugin,
 } from "./transform/types.js";
+import type { ShellArray } from "./interpreter/types.js";
 import type {
   BashExecResult,
   Command,
@@ -85,6 +86,11 @@ import type {
   RuntimeCommand,
   TraceCallback,
 } from "./types.js";
+
+/** Non-generic view of a defense handle, callable through a local binding. */
+interface DefenseHandleLike {
+  run(fn: () => Promise<BashExecResult>): Promise<BashExecResult>;
+}
 
 export type { ExecutionLimitProfile, ExecutionLimits } from "./limits.js";
 
@@ -345,15 +351,15 @@ export class Bash {
       {
         ...options.executionLimits,
         // Support deprecated individual options (they override executionLimits if set)
-        ...(options.maxCallDepth !== undefined && {
-          maxCallDepth: options.maxCallDepth,
-        }),
-        ...(options.maxCommandCount !== undefined && {
-          maxCommandCount: options.maxCommandCount,
-        }),
-        ...(options.maxLoopIterations !== undefined && {
-          maxLoopIterations: options.maxLoopIterations,
-        }),
+        ...(options.maxCallDepth !== undefined
+          ? { maxCallDepth: options.maxCallDepth }
+          : {}),
+        ...(options.maxCommandCount !== undefined
+          ? { maxCommandCount: options.maxCommandCount }
+          : {}),
+        ...(options.maxLoopIterations !== undefined
+          ? { maxLoopIterations: options.maxLoopIterations }
+          : {}),
       },
       options.executionLimitProfile,
     );
@@ -515,13 +521,13 @@ export class Bash {
     }
 
     for (const cmd of createLazyCommands(options.commands)) {
-      this.registerBundledCommand(cmd);
+      this.registerBundledCommand(cmd as unknown as Command);
     }
 
     // Register network commands when fetch or network is configured
     if (options.fetch || options.network) {
       for (const cmd of createNetworkCommands()) {
-        this.registerBundledCommand(cmd);
+        this.registerBundledCommand(cmd as unknown as Command);
       }
     }
 
@@ -529,20 +535,20 @@ export class Bash {
     // Python introduces additional security surface (arbitrary code execution)
     if (options.python) {
       for (const cmd of createPythonCommands()) {
-        this.registerBundledCommand(cmd);
+        this.registerBundledCommand(cmd as unknown as Command);
       }
     }
 
-    const jsConfig: JavaScriptConfig =
-      typeof options.javascript === "object"
-        ? options.javascript
-        : Object.create(null);
+    let jsConfig: JavaScriptConfig = {};
+    if (typeof options.javascript === "object" && options.javascript !== null) {
+      jsConfig = options.javascript;
+    }
 
     // Register javascript commands when JS is enabled or an invokeTool hook
     // is provided (the hook is meaningless without js-exec).
     if (options.javascript || jsConfig.invokeTool) {
       for (const cmd of createJavaScriptCommands()) {
-        this.registerBundledCommand(cmd);
+        this.registerBundledCommand(cmd as unknown as Command);
       }
       if (jsConfig.bootstrap) {
         this.jsBootstrapCode = jsConfig.bootstrap;
@@ -600,15 +606,18 @@ export class Bash {
     const fs = this.fs as {
       writeFileSync?: (path: string, content: string) => void;
     };
-    if (typeof fs.writeFileSync === "function") {
+    // Bind the optional method to a local first: an optional function member
+    // cannot be called straight off the receiver in a compiled build.
+    const writeStub = fs.writeFileSync;
+    if (writeStub !== undefined) {
       const stub = `#!/bin/bash\n# Built-in command: ${command.name}\n`;
       try {
-        fs.writeFileSync(`/bin/${command.name}`, stub);
+        writeStub(`/bin/${command.name}`, stub);
       } catch {
         // Ignore errors
       }
       try {
-        fs.writeFileSync(`/usr/bin/${command.name}`, stub);
+        writeStub(`/usr/bin/${command.name}`, stub);
       } catch {
         // Ignore errors
       }
@@ -724,10 +733,16 @@ export class Bash {
       let newPwd: string | undefined;
       let newCwd = effectiveCwd;
       if (effectiveOptions.cwd) {
-        if (effectiveOptions.env && "PWD" in effectiveOptions.env) {
+        if (
+          effectiveOptions.env !== undefined &&
+          effectiveOptions.env.PWD !== undefined
+        ) {
           // PWD explicitly provided - use it
           newPwd = effectiveOptions.env.PWD;
-        } else if (effectiveOptions.env && !("PWD" in effectiveOptions.env)) {
+        } else if (
+          effectiveOptions.env !== undefined &&
+          effectiveOptions.env.PWD === undefined
+        ) {
           // PWD not in provided env - use realpath to resolve symlinks
           // This also updates cwd since the shell determines its position from scratch
           try {
@@ -762,7 +777,7 @@ export class Bash {
         ...this.state,
         env: execEnv,
         arrays: effectiveOptions.replaceEnv
-          ? new Map()
+          ? new Map<string, ShellArray>()
           : cloneArrays(this.state.arrays),
         cwd: newCwd,
         previousDir: effectiveOptions.env?.OLDPWD ?? this.state.previousDir,
@@ -804,9 +819,11 @@ export class Bash {
       // Activate defense-in-depth box if configured
       // This wraps execution in AsyncLocalStorage context for context-aware blocking
       const defenseBox = this.defenseInDepthConfig
-        ? DefenseInDepthBox.getInstance(this.defenseInDepthConfig)
+        ? getDefenseBoxInstance(this.defenseInDepthConfig)
         : null;
-      const defenseHandle = defenseBox?.activate();
+      const defenseHandle = defenseBox === null ? null : defenseBox.activate();
+      const defenseHandleLike =
+        defenseHandle as unknown as DefenseHandleLike | null;
 
       try {
         // Run execution inside defense-in-depth context if enabled
@@ -836,7 +853,7 @@ export class Bash {
             commands: this.commands,
             limits: this.limits,
             executionScope,
-            exec: (script, childOptions, childStdinAlreadyAccounted = false) =>
+            exec: (script, childOptions, childStdinAlreadyAccounted) =>
               this.execInScope(
                 script,
                 childOptions,
@@ -849,7 +866,8 @@ export class Bash {
             sleep: this.sleepFn,
             trace: this.traceFn,
             coverage: this.coverageWriter,
-            requireDefenseContext: defenseBox?.isEnabled() === true,
+            requireDefenseContext:
+              defenseBox !== null && defenseBox.isEnabled(),
             jsBootstrapCode: this.jsBootstrapCode,
             invokeTool: this.invokeToolFn,
           };
@@ -865,8 +883,8 @@ export class Bash {
         };
 
         // If defense-in-depth is enabled, run within the protected context
-        if (defenseHandle) {
-          return await defenseHandle.run(executeScript);
+        if (defenseHandleLike !== null) {
+          return await defenseHandleLike.run(executeScript);
         }
         return await executeScript();
       } catch (error) {

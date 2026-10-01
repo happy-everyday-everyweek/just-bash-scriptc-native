@@ -35,10 +35,7 @@ import { mapToRecord } from "../helpers/env.js";
 import type { ExecutionLimits } from "../limits.js";
 import type { SecureFetch } from "../network/index.js";
 import { ParseException } from "../parser/types.js";
-import {
-  DefenseInDepthBox,
-  SecurityViolationError,
-} from "../security/defense-in-depth-box.js";
+import { SecurityViolationError, defenseCurrentExecutionId, defenseIsInSandboxedContext } from "../security/defense-in-depth-box.js";
 import type {
   CommandRegistry,
   ExecResult,
@@ -183,7 +180,7 @@ export class Interpreter {
    */
   private assertDefenseContext(phase: string): void {
     if (!this.ctx.requireDefenseContext) return;
-    if (DefenseInDepthBox.isInSandboxedContext()) return;
+    if (defenseIsInSandboxedContext()) return;
 
     const message = `interpreter ${phase} attempted outside defense context`;
     throw new SecurityViolationError(message, {
@@ -192,7 +189,7 @@ export class Interpreter {
       message,
       path: "DefenseInDepthBox.context",
       stack: new Error().stack,
-      executionId: DefenseInDepthBox.getCurrentExecutionId(),
+      executionId: defenseCurrentExecutionId(),
     });
   }
 
