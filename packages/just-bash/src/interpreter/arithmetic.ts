@@ -673,7 +673,7 @@ async function evaluateArithmeticInternal(
             elementKey = expr.operand.index.name;
           } else if (
             isAssoc &&
-            expr.operand.index?.type === "ArithVariable" &&
+            (expr.operand.index !== undefined && expr.operand.index !== null && expr.operand.index.type === "ArithVariable" )&&
             expr.operand.index.hasDollarPrefix
           ) {
             // A[$key]++ where key has $ -> expand $key to get the actual key

@@ -92,7 +92,7 @@ function transformPosixCharacterClasses(pattern: string): string {
       i++;
 
       // Handle negation
-      if (i < pattern.length && (pattern.charAt(i) === "^" || pattern[i] === "!")) {
+      if (i < pattern.length && (pattern.charAt(i) === "^" || pattern.charAt(i) === "!")) {
         bracketExpr += "^";
         i++;
       }
@@ -126,7 +126,7 @@ function transformPosixCharacterClasses(pattern: string): string {
 
         // Handle escape sequences
         if (pattern.charAt(i) === "\\" && i + 1 < pattern.length) {
-          bracketExpr += pattern.charAt(i) + pattern[i + 1];
+          bracketExpr += pattern.charAt(i) + pattern.charAt(i + 1);
           i += 2;
           continue;
         }
@@ -148,7 +148,7 @@ function transformPosixCharacterClasses(pattern: string): string {
 
     // Handle escape sequences outside bracket expressions
     if (pattern.charAt(i) === "\\" && i + 1 < pattern.length) {
-      result += pattern.charAt(i) + pattern[i + 1];
+      result += pattern.charAt(i) + pattern.charAt(i + 1);
       i += 2;
       continue;
     }

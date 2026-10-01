@@ -132,7 +132,7 @@ export function parseAssocArrayLiteral(
 
     // Parse key (may be quoted)
     let key = "";
-    if (content.charAt(pos) === "'" || content[pos] === '"') {
+    if (content.charAt(pos) === "'" || content.charAt(pos) === '"') {
       const quote = content[pos];
       pos++;
       while (pos < content.length && content[pos] !== quote) {
@@ -163,7 +163,7 @@ export function parseAssocArrayLiteral(
 
     // Parse value (may be quoted)
     let value = "";
-    if (content.charAt(pos) === "'" || content[pos] === '"') {
+    if (content.charAt(pos) === "'" || content.charAt(pos) === '"') {
       const quote = content[pos];
       pos++;
       while (pos < content.length && content[pos] !== quote) {

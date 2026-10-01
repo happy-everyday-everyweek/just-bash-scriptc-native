@@ -377,7 +377,7 @@ export async function handleIndirectInAlternative(
     wordParts.length !== 1 ||
     wordParts[0].type !== "ParameterExpansion" ||
     ((wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "UseAlternative" )&&
-      wordParts[0].operation?.type !== "DefaultValue")
+      (wordParts[0].operation !== undefined && wordParts[0].operation !== null && wordParts[0].operation.type !== "DefaultValue"))
   ) {
     return null;
   }

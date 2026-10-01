@@ -149,7 +149,7 @@ export function analyzeWordParts(parts: WordPart[]): WordPartsAnalysis {
             // Check for ${!prefix@} or ${!prefix*} inside double quotes
             if (
               (inner.operation !== undefined && inner.operation !== null && inner.operation.type === "VarNamePrefix" )||
-              inner.operation?.type === "ArrayKeys"
+              (inner.operation !== undefined && inner.operation !== null && inner.operation.type === "ArrayKeys")
             ) {
               hasVarNamePrefixExpansion = true;
             }
@@ -177,7 +177,7 @@ export function analyzeWordParts(parts: WordPart[]): WordPartsAnalysis {
       // Check for unquoted ${!prefix@} or ${!prefix*}
       if (
         (part.operation !== undefined && part.operation !== null && part.operation.type === "VarNamePrefix" )||
-        part.operation?.type === "ArrayKeys"
+        (part.operation !== undefined && part.operation !== null && part.operation.type === "ArrayKeys")
       ) {
         hasVarNamePrefixExpansion = true;
       }

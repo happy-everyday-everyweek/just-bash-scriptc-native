@@ -336,7 +336,7 @@ async function prepareRedirectionsWithState(
   if ((initialStdin !== undefined && initialStdin !== null && initialStdin.kind === "input")) {
     stdin = initialStdin.content;
     stdinSourceFd = 0;
-  } else if (initialStdin?.kind === "readwrite") {
+  } else if ((initialStdin !== undefined && initialStdin !== null && initialStdin.kind === "readwrite")) {
     stdin = initialStdin.content.slice(initialStdin.position);
     stdinSourceFd = 0;
   }

@@ -354,8 +354,7 @@ async function evalUnaryOp(
 }
 
 function awkCmpString(v: AwkValue): string {
-  const s = toAwkString(v);
-  return typeof s === "string" ? s : String(s);
+  return typeof v === "string" ? v : String(v);
 }
 
 async function evalFunctionCall(

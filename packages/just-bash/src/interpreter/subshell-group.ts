@@ -89,7 +89,7 @@ export async function executeSubshell(
         parentEntry.kind === "input" && (childEntry !== undefined && childEntry !== null && childEntry.kind === "input")
           ? parentEntry.content.length - childEntry.content.length
           : parentEntry.kind === "readwrite" &&
-              childEntry?.kind === "readwrite" &&
+              (childEntry !== undefined && childEntry !== null && childEntry.kind === "readwrite" )&&
               parentEntry.path === childEntry.path
             ? childEntry.position - parentEntry.position
             : 0;

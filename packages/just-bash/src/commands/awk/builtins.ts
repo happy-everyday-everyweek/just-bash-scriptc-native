@@ -663,7 +663,7 @@ export function formatPrintf(
           // Check for hh or ll first (2-char modifiers)
           if (
             j + 1 < format.length &&
-            ((format.charAt(j) === "h" && format[j + 1] === "h") ||
+            ((format.charAt(j) === "h" && format.charAt(j + 1) === "h") ||
               (format[j] === "l" && format[j + 1] === "l"))
           ) {
             j += 2;

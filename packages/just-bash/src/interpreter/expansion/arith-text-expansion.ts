@@ -158,7 +158,7 @@ export async function expandSubscriptForAssocArray(
         let depth = 1;
         let j = i + 2;
         while (j < inner.length && depth > 0) {
-          if (inner.charAt(j) === "(" && inner[j - 1] === "$") {
+          if (inner.charAt(j) === "(" && inner.charAt(j - 1) === "$") {
             depth++;
           } else if (inner[j] === "(") {
             depth++;

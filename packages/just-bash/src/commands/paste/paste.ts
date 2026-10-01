@@ -204,7 +204,7 @@ function joinWithDelimiters(parts: string[], delimiters: string): string {
     const delimIdx = (i - 1) % delimiters.length;
     const delim = delimiters[delimIdx];
     const part = parts[i];
-    result += (delim ?? "") + (part ?? "");
+    result = result + String(delim ?? "") + String(part ?? "");
   }
   return result;
 }

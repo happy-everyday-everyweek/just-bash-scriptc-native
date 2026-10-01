@@ -1046,7 +1046,7 @@ function parseArithPrimary(
         currentPos++;
         stringKey = "";
         while (currentPos < input.length && input[currentPos] !== quote) {
-      stringKey += input.charAt(currentPos);
+      stringKey = stringKey + input.charAt(currentPos);
           currentPos++;
         }
         if (input[currentPos] === quote) currentPos++;

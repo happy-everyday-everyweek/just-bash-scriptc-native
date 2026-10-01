@@ -247,7 +247,7 @@ export async function evaluateBinaryFileTest(
       ]);
       return (
         leftStat !== null &&
-        (rightStat === null || leftStat.mtime > rightStat.mtime)
+        (rightStat === null || leftStat.mtime.getTime() > rightStat.mtime.getTime())
       );
     }
 
@@ -259,7 +259,7 @@ export async function evaluateBinaryFileTest(
       ]);
       return (
         rightStat !== null &&
-        (leftStat === null || leftStat.mtime < rightStat.mtime)
+        (leftStat === null || leftStat.mtime.getTime() < rightStat.mtime.getTime())
       );
     }
 

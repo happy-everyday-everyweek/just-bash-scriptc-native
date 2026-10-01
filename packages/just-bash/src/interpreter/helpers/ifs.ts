@@ -402,7 +402,7 @@ export function splitByIfsForExpansionEx(
         words.push("");
         pos++;
         // Skip whitespace after
-        while (pos < value.length && whitespace.has(value[pos])) {
+        while (pos < value.length && whitespace.has(value.charAt(pos))) {
           pos++;
         }
       }
