@@ -42,6 +42,23 @@ import {
 import { failure, result, success } from "../helpers/result.js";
 import type { InterpreterContext } from "../types.js";
 
+/**
+ * Values this file iterates: anything with `forEach` (arrays, sets, readonly
+ * sets). Declared structurally because the lib `Iterable` type has no static
+ * lowering.
+ */
+interface StringValues {
+  forEach(callback: (value: string) => void): void;
+}
+
+/**
+ * Exclusion-list surface. Declared structurally: `ReadonlySet | undefined` is a
+ * union arm with no home in a compiled union.
+ */
+interface StringSetLike {
+  has(value: string): boolean;
+}
+
 const preserveWordlistEscapes = (part: WordPart): WordPart => {
   if (part.type === "Escaped") return AST.literal(`\\${part.value}`);
   if (part.type === "DoubleQuoted") {
@@ -358,8 +375,8 @@ export async function handleCompgen(
   const completionSet = new Set<string>();
   const remainingCompletionCapacity = (): number =>
     ctx.limits.maxArrayElements - completions.length;
-  const appendCompletions = (values: Iterable<string>): void => {
-    for (const value of values) {
+  const appendCompletions = (values: StringValues): void => {
+    values.forEach((value) => {
       if (completions.length >= ctx.limits.maxArrayElements) {
         throw new ExecutionLimitError(
           `compgen: completion element limit exceeded (${ctx.limits.maxArrayElements})`,
@@ -375,7 +392,7 @@ export async function handleCompgen(
       ctx.executionScope.consumeWork(1, "compgen completion");
       completions.push(value);
       completionSet.add(value);
-    }
+    });
   };
 
   // Handle -o dirnames (only show directories)
@@ -824,7 +841,7 @@ async function getDirectoryCompletions(
   ctx: InterpreterContext,
   prefix: string | null,
   maximum = ctx.limits.maxArrayElements,
-  excluded?: ReadonlySet<string>,
+  excluded?: StringSetLike,
 ): Promise<string[]> {
   const candidates = createCandidateCollector(ctx, null, maximum, excluded);
 
@@ -1007,14 +1024,14 @@ function createCandidateCollector(
   ctx: InterpreterContext,
   prefix: string | null,
   maximum: number,
-  excluded?: ReadonlySet<string>,
+  excluded?: StringSetLike,
 ): { add(value: string): void; build(): string[] } {
   const values = new Set<string>();
   return {
     add(value: string): void {
       ctx.executionScope.consumeWork(1, "compgen candidate collection");
       if (prefix !== null && !value.startsWith(prefix)) return;
-      if (excluded?.has(value)) return;
+      if (excluded !== undefined && excluded.has(value)) return;
       if (values.has(value)) return;
       if (values.size >= maximum) {
         throw new ExecutionLimitError(
