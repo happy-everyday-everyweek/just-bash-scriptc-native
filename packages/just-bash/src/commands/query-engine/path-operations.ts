@@ -39,7 +39,11 @@ export function setPath(
     if (head < 0) {
       throw new Error("Out of bounds negative array index");
     }
-    const arr = Array.isArray(value) ? [...value] : [];
+    const arr: QueryValue[] = [];
+    if (Array.isArray(value)) {
+      const vsrc = value as QueryValue[];
+      for (let i = 0; i < vsrc.length; i++) arr.push(vsrc[i]);
+    }
     while (arr.length <= head) arr.push(null);
     arr[head] = setPath(arr[head], rest, newVal);
     return arr;
@@ -76,8 +80,11 @@ export function deletePath(
   if (path.length === 1) {
     const key = path[0];
     if (Array.isArray(value) && typeof key === "number") {
-      const arr = [...value];
-      arr.splice(key, 1);
+      const arrSrc = value as QueryValue[];
+      const arr: QueryValue[] = [];
+      for (let i = 0; i < arrSrc.length; i++) {
+        if (i !== key) arr.push(arrSrc[i]);
+      }
       return arr;
     }
     if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -95,9 +102,11 @@ export function deletePath(
 
   const [head, ...rest] = path;
   if (Array.isArray(value) && typeof head === "number") {
-    const arr = [...value];
-    arr[head] = deletePath(arr[head], rest);
-    return arr;
+    const arrSrc2 = value as QueryValue[];
+    const arr2: QueryValue[] = [];
+    for (let i = 0; i < arrSrc2.length; i++) arr2.push(arrSrc2[i]);
+    arr2[head] = deletePath(arr2[head], rest);
+    return arr2;
   }
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const strHead = String(head);
@@ -106,7 +115,7 @@ export function deletePath(
       return value;
     }
     const obj = nullPrototypeCopy(value);
-    if (Object.hasOwn(obj, strHead)) {
+    if (safeHasOwn(obj, strHead)) {
       safeSet(obj, strHead, deletePath(obj[strHead], rest));
     }
     return obj;

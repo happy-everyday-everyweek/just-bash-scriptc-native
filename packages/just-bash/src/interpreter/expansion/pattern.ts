@@ -30,7 +30,7 @@ export function patternToRegex(
   let i = 0;
 
   while (i < pattern.length) {
-    const char = pattern[i];
+    const char = pattern.charAt(i);
 
     // Check for extglob patterns: @(...), *(...), +(...), ?(...), !(...)
     if (
@@ -41,7 +41,7 @@ export function patternToRegex(
         char === "?" ||
         char === "!") &&
       i + 1 < pattern.length &&
-      pattern[i + 1] === "("
+      pattern.charAt(i + 1) === "("
     ) {
       // Find the matching closing paren (handle nesting)
       const closeIdx = findMatchingParen(pattern, i + 1);
@@ -80,7 +80,7 @@ export function patternToRegex(
     if (char === "\\") {
       // Shell escape: \X means literal X
       if (i + 1 < pattern.length) {
-        const next = pattern[i + 1];
+        const next = pattern.charAt(i + 1);
         // Escape for regex if it's a regex special char
         if (/[\\^$.|+(){}[\]*?]/.test(next)) {
           regex += `\\${next}`;
@@ -131,7 +131,7 @@ function findMatchingParen(pattern: string, openIdx: number): number {
   let depth = 1;
   let i = openIdx + 1;
   while (i < pattern.length && depth > 0) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
     if (c === "\\") {
       i += 2; // Skip escaped char
       continue;
@@ -190,34 +190,34 @@ function splitExtglobAlternatives(content: string): string[] {
 }
 
 /**
- * Find the end of a character class starting at position i (where pattern[i] is '[')
+ * Find the end of a character class starting at position i (where pattern.charAt(i) is '[')
  */
 function findCharClassEnd(pattern: string, start: number): number {
   let i = start + 1;
 
   // Handle negation
-  if (i < pattern.length && pattern[i] === "^") {
+  if (i < pattern.length && pattern.charAt(i) === "^") {
     i++;
   }
 
   // A ] immediately after [ or [^ is literal, not closing
-  if (i < pattern.length && pattern[i] === "]") {
+  if (i < pattern.length && pattern.charAt(i) === "]") {
     i++;
   }
 
   while (i < pattern.length) {
     // Handle escape sequences - \] should not end the class
-    if (pattern[i] === "\\" && i + 1 < pattern.length) {
+    if (pattern.charAt(i) === "\\" && i + 1 < pattern.length) {
       i += 2; // Skip both the backslash and the escaped character
       continue;
     }
 
-    if (pattern[i] === "]") {
+    if (pattern.charAt(i) === "]") {
       return i;
     }
 
     // Handle single quotes inside character class (bash extension)
-    if (pattern[i] === "'") {
+    if (pattern.charAt(i) === "'") {
       const closeQuote = pattern.indexOf("'", i + 1);
       if (closeQuote !== -1) {
         i = closeQuote + 1;
@@ -227,9 +227,9 @@ function findCharClassEnd(pattern: string, start: number): number {
 
     // Handle POSIX classes [:name:]
     if (
-      pattern[i] === "[" &&
+      pattern.charAt(i) === "[" &&
       i + 1 < pattern.length &&
-      pattern[i + 1] === ":"
+      pattern.charAt(i + 1) === ":"
     ) {
       const closePos = pattern.indexOf(":]", i + 2);
       if (closePos !== -1) {
