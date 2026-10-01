@@ -195,7 +195,10 @@ function buildOutput(
   // Verbose output
   if (options.verbose) {
     output += `> ${options.method} ${requestUrl}\n`;
-    for (const [name, value] of options.headers) {
+    const hkNames = options.headers.keys();
+    for (let hi = 0; hi < hkNames.length; hi++) {
+      const name = hkNames[hi];
+      const value = options.headers.get(name) ?? "";
       output += `> ${name}: ${value}\n`;
     }
     output += ">\n";
@@ -311,7 +314,7 @@ export const curlCommand: RuntimeCommand = {
 
       const result = await ctx.fetch(url, {
         method: options.method,
-        headers,
+        headers: headers.toRecord(),
         body,
         followRedirects: options.followRedirects,
         timeoutMs: options.timeoutMs,

@@ -35,6 +35,21 @@ export class _Headers {
     const i = this.hlk.indexOf(k.toLowerCase());
     return i === -1 ? undefined : this.hv[i];
   }
+  keys(): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < this.hk.length; i++) out.push(this.hk[i]);
+    return out;
+  }
+  append(k: string, v: string): void {
+    this.set(k, v);
+  }
+  toRecord(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (let i = 0; i < this.hk.length; i++) {
+      out[this.hk[i]] = this.hv[i];
+    }
+    return out;
+  }
   delete(k: string): void {
     const lk = k.toLowerCase();
     const i = this.hlk.indexOf(lk);
