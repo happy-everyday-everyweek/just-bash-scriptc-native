@@ -762,10 +762,13 @@ export const grepCommand: RuntimeCommand = {
       for (const res of results) {
         if (res === null) continue;
 
-        const resView = res as unknown as {
+        const resAny = res as unknown;
+        const resView = resAny as {
           error: string | undefined;
           file: string | undefined;
-          result: { matched: boolean; output: string; matchCount: number } | undefined;
+          result:
+            | { matched: boolean; output: string; matchCount: number }
+            | undefined;
         };
         const resError = resView.error;
         if (resError !== null && resError !== undefined && resError.length > 0) {
