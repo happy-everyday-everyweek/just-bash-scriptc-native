@@ -30,7 +30,7 @@ import type { ArithExpr } from "../../ast/types.js";
 export type EvaluateArithmeticFn = (
   ctx: InterpreterContext,
   expr: ArithExpr,
-  isExpansionContext?: boolean,
+  isExpansionContext: boolean,
 ) => Promise<number>;
 
 /**
@@ -79,10 +79,10 @@ export async function handleArraySlicing(
 
   // Evaluate offset and length
   const offset = operation.offset
-    ? await evaluateArithmetic(ctx, operation.offset.expression)
+    ? await evaluateArithmetic(ctx, operation.offset.expression, false)
     : 0;
   const length = operation.length
-    ? await evaluateArithmetic(ctx, operation.length.expression)
+    ? await evaluateArithmetic(ctx, operation.length.expression, false)
     : undefined;
 
   // Get array elements (sorted by index)

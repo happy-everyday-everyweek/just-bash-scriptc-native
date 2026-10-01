@@ -43,7 +43,7 @@ export type IndirectExpansionResult = {
 export type ExpandParameterAsyncFn = (
   ctx: InterpreterContext,
   part: ParameterExpansionPart,
-  inDoubleQuotes?: boolean,
+  inDoubleQuotes: boolean,
 ) => Promise<string>;
 
 /**
@@ -52,7 +52,7 @@ export type ExpandParameterAsyncFn = (
 export type ExpandWordPartsAsyncFn = (
   ctx: InterpreterContext,
   parts: WordPart[],
-  inDoubleQuotes?: boolean,
+  inDoubleQuotes: boolean,
 ) => Promise<string>;
 
 /**

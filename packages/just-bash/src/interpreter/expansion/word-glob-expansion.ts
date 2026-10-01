@@ -89,18 +89,18 @@ export interface WordGlobExpansionDeps {
   expandPart: (
     ctx: InterpreterContext,
     part: WordPart,
-    inDoubleQuotes?: boolean,
+    inDoubleQuotes: boolean,
   ) => Promise<string>;
   expandParameterAsync: (
     ctx: InterpreterContext,
     part: ParameterExpansionPart,
-    inDoubleQuotes?: boolean,
+    inDoubleQuotes: boolean,
   ) => Promise<string>;
   hasBraceExpansion: (parts: WordPart[]) => boolean;
   evaluateArithmetic: (
     ctx: InterpreterContext,
     expr: ArithExpr,
-    isExpansionContext?: boolean,
+    isExpansionContext: boolean,
   ) => Promise<number>;
   buildIfsCharClassPattern: (ifsChars: string) => string;
   smartWordSplit: (
@@ -179,7 +179,7 @@ export async function expandWordWithGlobImpl(
   const mixedWordResult = await expandMixedWordParts(
     ctx,
     wordParts,
-    deps.expandPart,
+    (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
   );
   if (mixedWordResult !== null) {
     return applyGlobToValues(ctx, mixedWordResult);
@@ -197,7 +197,7 @@ export async function expandWordWithGlobImpl(
       wordParts,
       ifsChars,
       ifsPattern,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     return applyGlobToValues(ctx, splitResult);
   }
@@ -287,7 +287,7 @@ async function handleArrayExpansionCases(
         ctx,
         wordParts,
         hasArrayAtExpansion,
-        deps.expandPart,
+        (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
         deps.expandWordPartsAsync,
       );
     if (arrayPatternPrefixSuffixResult !== null) {
@@ -301,7 +301,7 @@ async function handleArrayExpansionCases(
       ctx,
       wordParts,
       hasArrayAtExpansion,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (arrayPrefixSuffixResult !== null) {
       return arrayPrefixSuffixResult;
@@ -334,7 +334,7 @@ async function handleArrayExpansionCases(
       ctx,
       wordParts,
       deps.expandWordPartsAsync,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (arrayPatReplResult !== null) {
       return arrayPatReplResult;
@@ -347,7 +347,7 @@ async function handleArrayExpansionCases(
       ctx,
       wordParts,
       deps.expandWordPartsAsync,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (arrayPatRemResult !== null) {
       return arrayPatRemResult;
@@ -467,7 +467,7 @@ async function handlePositionalExpansionCases(
       ctx,
       wordParts,
       deps.evaluateArithmetic,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (positionalSlicingResult !== null) {
       return positionalSlicingResult;
@@ -479,7 +479,7 @@ async function handlePositionalExpansionCases(
     const positionalPatReplResult = await handlePositionalPatternReplacement(
       ctx,
       wordParts,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
       deps.expandWordPartsAsync,
     );
     if (positionalPatReplResult !== null) {
@@ -492,7 +492,7 @@ async function handlePositionalExpansionCases(
     const positionalPatRemResult = await handlePositionalPatternRemoval(
       ctx,
       wordParts,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
       deps.expandWordPartsAsync,
     );
     if (positionalPatRemResult !== null) {
@@ -505,7 +505,7 @@ async function handlePositionalExpansionCases(
     const simplePositionalResult = await handleSimplePositionalExpansion(
       ctx,
       wordParts,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (simplePositionalResult !== null) {
       return simplePositionalResult;
@@ -530,7 +530,7 @@ async function handleUnquotedExpansionCases(
         ctx,
         wordParts,
         deps.expandWordPartsAsync,
-        deps.expandPart,
+        (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
       );
     if (unquotedArrayPatReplResult !== null) {
       return unquotedArrayPatReplResult;
@@ -543,7 +543,7 @@ async function handleUnquotedExpansionCases(
       ctx,
       wordParts,
       deps.expandWordPartsAsync,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (unquotedArrayPatRemResult !== null) {
       return unquotedArrayPatRemResult;
@@ -557,7 +557,7 @@ async function handleUnquotedExpansionCases(
         ctx,
         wordParts,
         deps.expandWordPartsAsync,
-        deps.expandPart,
+        (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
       );
     if (unquotedPosPatRemResult !== null) {
       return unquotedPosPatRemResult;
@@ -570,7 +570,7 @@ async function handleUnquotedExpansionCases(
       ctx,
       wordParts,
       deps.evaluateArithmetic,
-      deps.expandPart,
+      (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
     );
     if (unquotedSliceResult !== null) {
       return unquotedSliceResult;
@@ -624,7 +624,7 @@ async function handleUnquotedExpansionCases(
       await handleUnquotedPositionalWithPrefixSuffix(
         ctx,
         wordParts,
-        deps.expandPart,
+        (partCtxArg, partArg) => deps.expandPart(partCtxArg, partArg, false),
       );
     if (unquotedPrefixSuffixResult !== null) {
       return unquotedPrefixSuffixResult;

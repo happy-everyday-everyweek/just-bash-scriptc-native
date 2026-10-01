@@ -53,7 +53,7 @@ import { getVariableAttributes } from "./variable-attrs.js";
 export type ExpandWordPartsAsyncFn = (
   ctx: InterpreterContext,
   parts: WordPart[],
-  inDoubleQuotes?: boolean,
+  inDoubleQuotes: boolean,
 ) => Promise<string>;
 
 /**
@@ -62,7 +62,7 @@ export type ExpandWordPartsAsyncFn = (
 export type ExpandPartFn = (
   ctx: InterpreterContext,
   part: WordPart,
-  inDoubleQuotes?: boolean,
+  inDoubleQuotes: boolean,
 ) => Promise<string>;
 
 /**
@@ -71,7 +71,7 @@ export type ExpandPartFn = (
 export type ExpandParameterAsyncFn = (
   ctx: InterpreterContext,
   part: ParameterExpansionPart,
-  inDoubleQuotes?: boolean,
+  inDoubleQuotes: boolean,
 ) => Promise<string>;
 
 /**
@@ -226,13 +226,13 @@ export async function handlePatternRemoval(
       } else if (part.type === "SingleQuoted" || part.type === "Escaped") {
         regexStr += escapeRegex(part.value);
       } else if (part.type === "DoubleQuoted") {
-        const expanded = await expandWordPartsAsync(ctx, part.parts);
+        const expanded = await expandWordPartsAsync(ctx, part.parts, false);
         regexStr += escapeRegex(expanded);
       } else if (part.type === "ParameterExpansion") {
-        const expanded = await expandPart(ctx, part);
+        const expanded = await expandPart(ctx, part, false);
         regexStr += patternToRegex(expanded, operation.greedy, extglob);
       } else {
-        const expanded = await expandPart(ctx, part);
+        const expanded = await expandPart(ctx, part, false);
         regexStr += escapeRegex(expanded);
       }
     }
@@ -270,20 +270,20 @@ export async function handlePatternReplacement(
       } else if (part.type === "SingleQuoted" || part.type === "Escaped") {
         regex += escapeRegex(part.value);
       } else if (part.type === "DoubleQuoted") {
-        const expanded = await expandWordPartsAsync(ctx, part.parts);
+        const expanded = await expandWordPartsAsync(ctx, part.parts, false);
         regex += escapeRegex(expanded);
       } else if (part.type === "ParameterExpansion") {
-        const expanded = await expandPart(ctx, part);
+        const expanded = await expandPart(ctx, part, false);
         regex += patternToRegex(expanded, true, extglob);
       } else {
-        const expanded = await expandPart(ctx, part);
+        const expanded = await expandPart(ctx, part, false);
         regex += escapeRegex(expanded);
       }
     }
   }
 
   const replacement = operation.replacement
-    ? await expandWordPartsAsync(ctx, operation.replacement.parts)
+    ? await expandWordPartsAsync(ctx, operation.replacement.parts, false)
     : "";
 
   // Apply anchor modifiers
@@ -499,10 +499,10 @@ export async function handleCaseModification(
       } else if (part.type === "SingleQuoted" || part.type === "Escaped") {
         patternRegexStr += escapeRegex(part.value);
       } else if (part.type === "DoubleQuoted") {
-        const expanded = await expandWordPartsAsync(ctx, part.parts);
+        const expanded = await expandWordPartsAsync(ctx, part.parts, false);
         patternRegexStr += escapeRegex(expanded);
       } else if (part.type === "ParameterExpansion") {
-        const expanded = await expandParameterAsync(ctx, part);
+        const expanded = await expandParameterAsync(ctx, part, false);
         patternRegexStr += patternToRegex(expanded, true, extglob);
       }
     }
