@@ -755,7 +755,7 @@ export const grepCommand: RuntimeCommand = {
         const resView = res as unknown as {
           error: string | null | undefined;
           file: string | null | undefined;
-          result: { matched: boolean } | null | undefined;
+          result: { matched: boolean; output: string } | null | undefined;
         };
         const resError = resView.error;
         if (resError !== null && resError !== undefined && resError.length > 0) {

@@ -221,9 +221,9 @@ function createRevocableCommandContext(
       return copy;
     }
 
-    const methods = new Map<PropertyKey, unknown>();
+    const methods = new Map<string, unknown>();
     const proxy = new _Proxy(value, {
-      get(object, property) {
+      get(object: unknown, property: string) {
         assertActive();
         if (
           property === "constructor" ||
@@ -244,7 +244,7 @@ function createRevocableCommandContext(
         methods.set(property, wrapped);
         return wrapped;
       },
-      set(object, property, nextValue) {
+      set(object: unknown, property: string, nextValue: unknown) {
         assertActive();
         if (
           property === "constructor" ||

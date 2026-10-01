@@ -12,6 +12,49 @@
 export const _SharedArrayBuffer: unknown = undefined;
 export const _Atomics: unknown = undefined;
 export const _performanceNow: () => number = performance.now.bind(performance);
-export const _Headers: unknown = undefined;
+export class _Headers {
+  private hk: string[] = [];
+  private hv: string[] = [];
+  private hlk: string[] = [];
+  constructor(init?: unknown) {}
+  set(k: string, v: string): void {
+    const lk = k.toLowerCase();
+    const i = this.hlk.indexOf(lk);
+    if (i === -1) {
+      this.hk.push(k);
+      this.hv.push(v);
+      this.hlk.push(lk);
+    } else {
+      this.hv[i] = v;
+    }
+  }
+  has(k: string): boolean {
+    return this.hlk.indexOf(k.toLowerCase()) !== -1;
+  }
+  get(k: string): string | undefined {
+    const i = this.hlk.indexOf(k.toLowerCase());
+    return i === -1 ? undefined : this.hv[i];
+  }
+  delete(k: string): void {
+    const lk = k.toLowerCase();
+    const i = this.hlk.indexOf(lk);
+    if (i === -1) return;
+    const nk: string[] = [];
+    const nv: string[] = [];
+    const nl: string[] = [];
+    for (let j = 0; j < this.hk.length; j++) {
+      if (j !== i) {
+        nk.push(this.hk[j]);
+        nv.push(this.hv[j]);
+        nl.push(this.hlk[j]);
+      }
+    }
+    this.hk = nk;
+    this.hv = nv;
+    this.hlk = nl;
+  }
+}
 /** Internal capability revocation; never expose this constructor to commands. */
-export const _Proxy: unknown = undefined;
+export class _Proxy {
+  constructor(_target: unknown, _handler: object) {}
+}

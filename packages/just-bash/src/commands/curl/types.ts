@@ -1,3 +1,4 @@
+import type { _Headers } from "../../security/trusted-globals.js";
 /**
  * Types for curl command
  */
@@ -45,7 +46,7 @@ export interface DataPartFile {
 
 export interface CurlOptions {
   method: string;
-  headers: Headers;
+  headers: _Headers;
   dataParts: DataPart[];
   dataBinary: boolean;
   getMode: boolean;
