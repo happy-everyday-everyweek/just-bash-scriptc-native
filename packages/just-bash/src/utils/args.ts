@@ -64,22 +64,25 @@ export type ParseResult<T extends Record<string, ArgDef>> =
  * if (!result.ok) return result.error;
  * const { flags, positional } = result.result;
  */
-type ParsedFlagsOut<T extends Record<string, ArgDef>> = {
-  [K in keyof T]: FlagValue<T[K]>;
-};
+function parseArgsRaw(
+  cmdName: string,
+  args: string[],
+  defs: Record<string, ArgDef>,
+): ParseArgsCoreResult {
+  return parseArgsCore(cmdName, args, defs);
+}
 
-export function parseArgs<T extends Record<string, ArgDef>>(
+export const parseArgs: <T extends Record<string, ArgDef>>(
   cmdName: string,
   args: string[],
   defs: T,
-): ParseResult<T> {
-  const core = parseArgsCore(cmdName, args, defs);
-  if (core.ok) {
-    const flags = core.result.flags as unknown as ParsedFlagsOut<T>;
-    return { ok: true, result: { flags, positional: core.result.positional } };
-  }
-  return { ok: false, error: core.error };
-}
+) => ParseResult<T> = parseArgsRaw as unknown as <
+  T extends Record<string, ArgDef>
+>(
+  cmdName: string,
+  args: string[],
+  defs: T,
+) => ParseResult<T>;
 
 type ParsedFlagsRecord = Record<string, boolean | string | number | undefined>;
 
