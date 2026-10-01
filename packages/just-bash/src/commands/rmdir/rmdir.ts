@@ -5,7 +5,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 
 const USAGE = `Usage: rmdir [-pv] DIRECTORY...
 Remove empty directories.
@@ -27,7 +27,7 @@ export const rmdirCommand: RuntimeCommand = {
     args: string[],
     ctx: RuntimeCommandContext,
   ): Promise<ExecResult> {
-    const parsed = parseArgs("rmdir", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("rmdir", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     if (parsed.result.flags.help) {

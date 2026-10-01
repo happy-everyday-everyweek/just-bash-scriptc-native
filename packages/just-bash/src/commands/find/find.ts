@@ -451,8 +451,9 @@ export const findCommand: RuntimeCommand = {
 
         if (isDirectory && shouldReadDir) {
           const readdirStart = Date.now();
-          if (hasReaddirWithFileTypes && ctx.fs.readdirWithFileTypes) {
-            entriesWithTypes = await ctx.fs.readdirWithFileTypes(currentPath);
+          const typedReaddir = ctx.fs.readdirWithFileTypes;
+          if (hasReaddirWithFileTypes && typedReaddir !== undefined) {
+            entriesWithTypes = await typedReaddir(currentPath);
             traversalBudget.checkpoint();
             traversalBudget.discover(entriesWithTypes.length);
             entries = [];
@@ -826,10 +827,11 @@ export const findCommand: RuntimeCommand = {
       for (const effect of searchResult.effects) effects.push(effect);
 
       // Emit trace summary for this search path
-      if (ctx.trace) {
+      const traceFn = ctx.trace;
+      if (traceFn !== undefined) {
         const totalMs = Date.now() - traceStartTime;
-        emitTraceSummary(ctx.trace, traceCounters, totalMs);
-        ctx.trace({
+        emitTraceSummary(traceFn, traceCounters, totalMs);
+        traceFn({
           category: "find",
           name: "searchPath",
           durationMs: totalMs,

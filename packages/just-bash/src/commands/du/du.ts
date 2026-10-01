@@ -8,7 +8,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const duHelp = {
@@ -52,7 +52,7 @@ export const duCommand: RuntimeCommand = {
       return showHelp(duHelp);
     }
 
-    const parsed = parseArgs("du", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("du", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const options: DuOptions = {

@@ -15,7 +15,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const mvHelp = {
@@ -47,7 +47,7 @@ export const mvCommand: RuntimeCommand = {
       return showHelp(mvHelp);
     }
 
-    const parsed = parseArgs("mv", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("mv", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     let force = parsed.result.flags.force;

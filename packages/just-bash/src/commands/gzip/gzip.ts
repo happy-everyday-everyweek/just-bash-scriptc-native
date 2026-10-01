@@ -16,7 +16,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { CodecBudget } from "../compression/codec-budget.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -950,7 +950,7 @@ async function executeGzip(
     return showHelp(help);
   }
 
-  const parsed = parseArgs(cmdName, args, argDefs);
+  const parsed = parseArgs<FlagsOf<typeof argDefs>>(cmdName, args, argDefs);
   if (!parsed.ok) {
     // Check if it's an unknown option error
     if (parsed.error.stderr.includes("unrecognized option")) {

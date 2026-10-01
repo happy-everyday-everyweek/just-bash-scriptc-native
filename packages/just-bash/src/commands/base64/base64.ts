@@ -10,7 +10,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { accountFileInput } from "../../utils/file-reader.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -157,7 +157,7 @@ export const base64Command: RuntimeCommand = {
       return showHelp(base64Help);
     }
 
-    const parsed = parseArgs("base64", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("base64", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const decode = parsed.result.flags.decode;

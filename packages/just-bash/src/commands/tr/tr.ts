@@ -11,7 +11,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const trHelp = {
@@ -173,7 +173,7 @@ export const trCommand: RuntimeCommand = {
       return showHelp(trHelp);
     }
 
-    const parsed = parseArgs("tr", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("tr", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     // -c and -C both enable complement mode

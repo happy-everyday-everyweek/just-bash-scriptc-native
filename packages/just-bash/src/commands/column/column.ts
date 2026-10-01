@@ -14,7 +14,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const columnHelp = {
@@ -188,7 +188,7 @@ export const column: RuntimeCommand = {
       return showHelp(columnHelp);
     }
 
-    const parsed = parseArgs("column", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("column", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const { table, separator, outputSep, width, noMerge } = parsed.result.flags;

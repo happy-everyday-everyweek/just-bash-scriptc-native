@@ -3,7 +3,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const whichHelp = {
@@ -33,7 +33,7 @@ export const whichCommand: RuntimeCommand = {
       return showHelp(whichHelp);
     }
 
-    const parsed = parseArgs("which", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("which", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const showAll = parsed.result.flags.showAll;

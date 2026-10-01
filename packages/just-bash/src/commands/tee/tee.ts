@@ -4,7 +4,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const teeHelp = {
@@ -32,7 +32,7 @@ export const teeCommand: RuntimeCommand = {
       return showHelp(teeHelp);
     }
 
-    const parsed = parseArgs("tee", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("tee", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const { append } = parsed.result.flags;

@@ -8,7 +8,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { readFiles } from "../../utils/file-reader.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -43,7 +43,7 @@ export const wcCommand: RuntimeCommand = {
       return showHelp(wcHelp);
     }
 
-    const parsed = parseArgs("wc", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("wc", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     let { lines: showLines, words: showWords } = parsed.result.flags;

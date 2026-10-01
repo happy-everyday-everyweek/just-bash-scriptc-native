@@ -7,7 +7,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
 const pasteHelp = {
@@ -53,7 +53,7 @@ export const pasteCommand: RuntimeCommand = {
       return showHelp(pasteHelp);
     }
 
-    const parsed = parseArgs("paste", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("paste", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const delimiter = parsed.result.flags.delimiter;

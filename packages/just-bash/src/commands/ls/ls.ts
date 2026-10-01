@@ -11,7 +11,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { DEFAULT_BATCH_SIZE } from "../../utils/constants.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -185,7 +185,7 @@ export const lsCommand: RuntimeCommand = {
       return showHelp(lsHelp);
     }
 
-    const parsed = parseArgs("ls", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("ls", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const showAll = parsed.result.flags.showAll;

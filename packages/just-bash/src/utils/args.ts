@@ -36,41 +36,27 @@ type FlagValue<D> = D extends { type: "boolean" }
       ? string
       : string | undefined;
 
-export interface ParsedArgs<T extends Record<string, ArgDef>> {
+/**
+ * Flag record a definition-object literal yields (`typeof argDefs`).
+ *
+ * Kept as a mapped type for TYPE POSITIONS only, instantiated explicitly at
+ * each call site (`parseArgs<FlagsOf<typeof argDefs>>(...)`): a function
+ * signature that itself carries a mapped type has no static lowering.
+ */
+export type FlagsOf<T extends Record<string, ArgDef>> = {
+  [K in keyof T]: FlagValue<T[K]>;
+};
+
+export interface ParsedArgs<F> {
   /** Parsed flag/option values */
-  flags: { [K in keyof T]: FlagValue<T[K]> };
+  flags: F;
   /** Positional arguments (non-flag arguments) */
   positional: string[];
 }
 
-export type ParseResult<T extends Record<string, ArgDef>> =
-  | { ok: true; result: ParsedArgs<T> }
+export type ParseResult<F> =
+  | { ok: true; result: ParsedArgs<F> }
   | { ok: false; error: ExecResult };
-
-/**
- * Parse command arguments according to the provided definitions.
- *
- * @param cmdName - Command name for error messages
- * @param args - Arguments to parse
- * @param defs - Argument definitions
- * @returns Parsed arguments or error result
- *
- * @example
- * const defs = {
- *   reverse: { short: "r", long: "reverse", type: "boolean" as const },
- *   count: { short: "n", long: "lines", type: "number" as const, default: 10 },
- * };
- * const result = parseArgs("head", args, defs);
- * if (!result.ok) return result.error;
- * const { flags, positional } = result.result;
- */
-interface ParseArgsFn {
-  <T extends Record<string, ArgDef>>(
-    cmdName: string,
-    args: string[],
-    defs: T,
-  ): ParseResult<T>;
-}
 
 function parseArgsRaw(
   cmdName: string,
@@ -80,7 +66,20 @@ function parseArgsRaw(
   return parseArgsCore(cmdName, args, defs);
 }
 
-export const parseArgs: ParseArgsFn = parseArgsRaw as unknown as ParseArgsFn;
+/**
+ * Parse command arguments according to the provided definitions.
+ *
+ * Call sites pin the flag record explicitly:
+ *   parseArgs<FlagsOf<typeof argDefs>>(cmdName, args, argDefs)
+ */
+export function parseArgs<F>(
+  cmdName: string,
+  args: string[],
+  defs: Record<string, ArgDef>,
+): ParseResult<F> {
+  const raw = parseArgsRaw(cmdName, args, defs) as unknown;
+  return raw as ParseResult<F>;
+}
 
 type ParsedFlagsRecord = Record<string, boolean | string | number | undefined>;
 

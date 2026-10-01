@@ -4,7 +4,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { readAndConcat } from "../../utils/file-reader.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -38,7 +38,7 @@ export const uniqCommand: RuntimeCommand = {
       return showHelp(uniqHelp);
     }
 
-    const parsed = parseArgs("uniq", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("uniq", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const { count, duplicatesOnly, uniqueOnly, ignoreCase } =

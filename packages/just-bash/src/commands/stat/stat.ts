@@ -6,7 +6,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { formatMode } from "../format-mode.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -35,7 +35,7 @@ export const statCommand: RuntimeCommand = {
       return showHelp(statHelp);
     }
 
-    const parsed = parseArgs("stat", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("stat", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const format = parsed.result.flags.format ?? null;

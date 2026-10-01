@@ -8,7 +8,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 import {
   computeChanges,
@@ -58,7 +58,7 @@ export const diffCommand: RuntimeCommand = {
   ): Promise<ExecResult> {
     if (hasHelpFlag(args)) return showHelp(diffHelp);
 
-    const parsed = parseArgs("diff", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("diff", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const flags = parsed.result.flags;

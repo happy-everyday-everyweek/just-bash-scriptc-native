@@ -5,7 +5,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 
 const argDefs = {
   recursive: { short: "p", long: "parents", type: "boolean" as const },
@@ -19,7 +19,7 @@ export const mkdirCommand: RuntimeCommand = {
     args: string[],
     ctx: RuntimeCommandContext,
   ): Promise<ExecResult> {
-    const parsed = parseArgs("mkdir", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("mkdir", args, argDefs);
     if (!parsed.ok) return parsed.error;
 
     const recursive = parsed.result.flags.recursive;

@@ -6,7 +6,7 @@ import type {
   RuntimeCommand,
   RuntimeCommandContext,
 } from "../../types.js";
-import { parseArgs } from "../../utils/args.js";
+import { parseArgs, type FlagsOf } from "../../utils/args.js";
 import { accountFileInput } from "../../utils/file-reader.js";
 import { hasHelpFlag, showHelp } from "../help.js";
 
@@ -70,7 +70,7 @@ export const catCommand: RuntimeCommand = {
       return showHelp(catHelp);
     }
 
-    const parsed = parseArgs("cat", args, argDefs);
+    const parsed = parseArgs<FlagsOf<typeof argDefs>>("cat", args, argDefs);
     if (!parsed.ok) return parsed.error;
     const f = parsed.result.flags;
 
