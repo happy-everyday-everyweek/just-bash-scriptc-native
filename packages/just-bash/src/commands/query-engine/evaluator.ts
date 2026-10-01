@@ -33,7 +33,6 @@ import {
   safeHasOwn,
   nullPrototypeCopy,
   nullPrototypeMerge,
-  safeHasOwn,
   safeSet,
 } from "./safe-object.js";
 import {
