@@ -1,3 +1,4 @@
+import { bytesFromLatin1 } from "../../utils/bytes.js";
 /**
  * base64 - Encode or decode base64
  */
@@ -83,7 +84,7 @@ async function readBinary(
     // Convert binary string directly to bytes without UTF-8 re-encoding
     return {
       ok: true,
-      data: Uint8Array.from(stdinBinary, (c) => c.charCodeAt(0)),
+      data: bytesFromLatin1(stdinBinary),
     };
   }
 
@@ -99,7 +100,7 @@ async function readBinary(
         "string_length",
       );
       // Convert binary string directly to bytes without UTF-8 re-encoding
-      chunks.push(Uint8Array.from(stdinBinary, (c) => c.charCodeAt(0)));
+      chunks.push(bytesFromLatin1(stdinBinary));
       totalLength += stdinBinary.length;
       continue;
     }
@@ -139,7 +140,10 @@ async function readBinary(
   const result = new Uint8Array(totalLength);
   let offset = 0;
   for (const chunk of chunks) {
-    result.set(chunk, offset);
+    if (chunk === undefined) continue;
+    for (let ci = 0; ci < chunk.length; ci++) {
+      result[offset + ci] = chunk[ci];
+    }
     offset += chunk.length;
   }
 

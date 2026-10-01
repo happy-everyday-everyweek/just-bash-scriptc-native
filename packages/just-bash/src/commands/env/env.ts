@@ -1,3 +1,4 @@
+import { copyStringMap } from "../../utils/bytes.js";
 import { latin1FromBytes } from "../../encoding.js";
 import { mapToRecord } from "../../helpers/env.js";
 import type {
@@ -72,9 +73,9 @@ export const envCommand: RuntimeCommand = {
     // Build the new environment
     let newEnv: Map<string, string>;
     if (ignoreEnv) {
-      newEnv = new Map(setVars);
+      newEnv = copyStringMap(setVars);
     } else {
-      newEnv = new Map(ctx.env);
+      newEnv = copyStringMap(ctx.env);
       // Unset variables
       for (const name of unsetVars) {
         newEnv.delete(name);

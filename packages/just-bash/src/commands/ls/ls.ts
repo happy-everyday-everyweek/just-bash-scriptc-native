@@ -1,3 +1,4 @@
+import { copyStringSet } from "../../utils/bytes.js";
 import { BoundedStringBuilder } from "../../bounded-builder.js";
 import { utf8ByteLength } from "../../encoding.js";
 import type { FsStat } from "../../fs/interface.js";
@@ -517,7 +518,7 @@ async function listPath(
         exitCode: 2,
       };
     }
-    const childAncestors = new Set(ancestorIdentities);
+    const childAncestors = copyStringSet(ancestorIdentities);
     if (identity !== undefined) childAncestors.add(identity);
 
     // It's a directory

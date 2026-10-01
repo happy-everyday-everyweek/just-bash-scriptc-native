@@ -1,3 +1,4 @@
+import { stringSetFrom } from "../../../utils/bytes.js";
 /**
  * SQL-like jq builtins
  *
@@ -50,7 +51,9 @@ export function evalSqlBuiltin(
       // IN(stream1; stream2) - check if any value from stream1 is in stream2
       const stream1Vals = evaluate(value, args[0], ctx);
       const stream2Vals = evaluate(value, args[1], ctx);
-      const stream2Set = new Set(stream2Vals.map((v) => JSON.stringify(v)));
+      const stream2Keys: string[] = [];
+      for (const v of stream2Vals) stream2Keys.push(JSON.stringify(v));
+      const stream2Set = stringSetFrom(stream2Keys);
       for (const v of stream1Vals) {
         if (stream2Set.has(JSON.stringify(v))) return [true];
       }

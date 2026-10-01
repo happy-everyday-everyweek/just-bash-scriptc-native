@@ -400,7 +400,7 @@ async function detectFileType(
   }
 
   // Fall back to text detection (convert buffer to string)
-  const content = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+  const content = new TextDecoder("utf-8").decode(buffer);
   return detectTextType(content, filename);
 }
 

@@ -3,7 +3,9 @@ import { getAllCommandFuzzInfo } from "./fuzz-flags.js";
 
 const flagMap = new Map<string, Set<string>>();
 for (const info of getAllCommandFuzzInfo()) {
-  flagMap.set(info.name, new Set(info.flags.map((f) => f.flag)));
+  const flagSet = new Set<string>();
+  for (const f of info.flags) flagSet.add(f.flag);
+  flagMap.set(info.name, flagSet);
 }
 
 export function emitFlagCoverage(

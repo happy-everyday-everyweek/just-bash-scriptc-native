@@ -1,3 +1,5 @@
+import { hexFromBytes } from "../../utils/radix.js";
+import { bytesFromLatin1 } from "../../utils/bytes.js";
 /**
  * Shared checksum utilities for md5sum, sha1sum, sha256sum
  * Uses WebCrypto API for SHA algorithms, pure JS for MD5
@@ -105,9 +107,7 @@ function md5(bytes: Uint8Array): string {
   new DataView(result.buffer).setUint32(8, c0, true);
   new DataView(result.buffer).setUint32(12, d0, true);
 
-  return Array.from(result)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return hexFromBytes(result);
 }
 
 async function computeHash(
@@ -177,9 +177,7 @@ export function createChecksumCommand(
       // through without decoding.
       const readBinary = async (file: string): Promise<Uint8Array | null> => {
         if (file === "-") {
-          return Uint8Array.from(latin1FromBytes(ctx.stdin), (c) =>
-            c.charCodeAt(0),
-          );
+          return bytesFromLatin1(latin1FromBytes(ctx.stdin));
         }
         try {
           return await ctx.fs.readFileBuffer(ctx.fs.resolvePath(ctx.cwd, file));

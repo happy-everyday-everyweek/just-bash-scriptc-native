@@ -1,3 +1,4 @@
+import { charsOf } from "../../utils/bytes.js";
 /**
  * rev - reverse lines characterwise
  *
@@ -33,7 +34,10 @@ const revHelp = {
  * to split by code points rather than UTF-16 code units.
  */
 function reverseString(str: string): string {
-  return Array.from(str).reverse().join("");
+  const chars = charsOf(str);
+  let out = "";
+  for (let i = chars.length - 1; i >= 0; i--) out += chars[i];
+  return out;
 }
 
 export const rev: RuntimeCommand = {

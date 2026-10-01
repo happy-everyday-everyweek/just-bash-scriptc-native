@@ -1,3 +1,4 @@
+import { charsOf } from "../../utils/bytes.js";
 import { BoundedStringBuilder } from "../../bounded-builder.js";
 import { decodeBytesToUtf8, latin1FromBytes } from "../../encoding.js";
 import { ExecutionLimitError } from "../../interpreter/errors.js";
@@ -190,7 +191,7 @@ export const cutCommand: RuntimeCommand = {
         // Character mode (-s has no effect in character mode). Slice by
         // codepoints — `Array.from` splits on Unicode code points so emoji
         // and CJK chars count as one position each.
-        const chars = Array.from(line);
+        const chars = charsOf(line);
         const selected: string[] = [];
         for (const range of ranges) {
           const start = range.start - 1;

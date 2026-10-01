@@ -1,3 +1,4 @@
+import { charsOf, stringSetFrom } from "../../utils/bytes.js";
 import {
   decodeBytesToUtf8,
   latin1FromBytes,
@@ -253,8 +254,8 @@ export const trCommand: RuntimeCommand = {
         "array_elements",
       );
     }
-    const set1 = new Set(set1Raw);
-    const set2Chars = new Set(set2);
+    const set1 = stringSetFrom(charsOf(set1Raw));
+    const set2Chars = stringSetFrom(charsOf(set2));
 
     // Helper to check if character is in set1 (considering complement mode)
     const isInSet1 = (char: string): boolean => {

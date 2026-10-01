@@ -27,16 +27,16 @@ export class CodecBudget {
 
   constructor(private readonly options: CodecBudgetOptions) {
     this.label = options.label ?? "codec";
-    for (const [name, value] of [
-      ["maxInputBytes", options.maxInputBytes],
-      ["maxOutputBytes", options.maxOutputBytes],
-      ["maxExpansionRatio", options.maxExpansionRatio],
-      ["ratioGraceBytes", options.ratioGraceBytes],
-      ["maxWorkBytes", options.maxWorkBytes],
-    ] as const) {
-      if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
-        throw new Error(`${this.label}: invalid ${name}`);
-      }
+    this.checkOption("maxInputBytes", options.maxInputBytes);
+    this.checkOption("maxOutputBytes", options.maxOutputBytes);
+    this.checkOption("maxExpansionRatio", options.maxExpansionRatio);
+    this.checkOption("ratioGraceBytes", options.ratioGraceBytes);
+    this.checkOption("maxWorkBytes", options.maxWorkBytes);
+  }
+
+  private checkOption(name: string, value: number | undefined): void {
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
+      throw new Error(`${this.label}: invalid ${name}`);
     }
   }
 

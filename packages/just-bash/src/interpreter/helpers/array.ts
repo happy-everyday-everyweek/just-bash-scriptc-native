@@ -1,3 +1,4 @@
+import { copyStringMap } from "../../utils/bytes.js";
 /**
  * Array helper functions for the interpreter.
  */
@@ -8,7 +9,7 @@ import { ExecutionLimitError } from "../errors.js";
 import type { InterpreterContext, ShellArray } from "../types.js";
 
 export function cloneArray(array: ShellArray): ShellArray {
-  return { kind: array.kind, elements: new Map(array.elements) };
+  return { kind: array.kind, elements: copyStringMap(array.elements) };
 }
 
 export function cloneArrays(

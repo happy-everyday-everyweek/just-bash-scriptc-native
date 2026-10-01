@@ -33,3 +33,11 @@ export function toHexLower(n: number): string {
   const hi = (v - (v % 16)) / 16;
   return digits.charAt(hi) + digits.charAt(v % 16);
 }
+
+
+/** Lowercase hex of a byte array. */
+export function hexFromBytes(u: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < u.length; i++) out += toHexLower(u[i]);
+  return out;
+}

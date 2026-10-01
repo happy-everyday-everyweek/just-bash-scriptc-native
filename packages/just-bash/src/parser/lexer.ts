@@ -155,7 +155,10 @@ const RESERVED_WORDS = new Map<string, TokenType>([
   ["coproc", TokenType.COPROC],
 ]);
 
-const RESERVED_WORD_TOKEN_TYPES = new Set(RESERVED_WORDS.values());
+const RESERVED_WORD_TOKEN_TYPES = new Set<TokenType>();
+RESERVED_WORDS.forEach((value) => {
+  RESERVED_WORD_TOKEN_TYPES.add(value);
+});
 
 export function isReservedWordToken(type: TokenType): boolean {
   return RESERVED_WORD_TOKEN_TYPES.has(type);

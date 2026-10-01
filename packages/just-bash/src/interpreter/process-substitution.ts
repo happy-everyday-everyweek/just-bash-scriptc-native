@@ -1,3 +1,4 @@
+import { copyStringMap } from "../utils/bytes.js";
 /**
  * Process Substitution
  *
@@ -266,7 +267,7 @@ async function runBody(
   }
 
   const savedDepth = ctx.substitutionDepth;
-  const savedEnv = new Map(ctx.state.env);
+  const savedEnv = copyStringMap(ctx.state.env);
   const savedArrays = cloneArrays(ctx.state.arrays);
   const savedCwd = ctx.state.cwd;
   const savedBashPid = ctx.state.bashPid;

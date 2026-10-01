@@ -1,3 +1,4 @@
+import { hexFromBytes } from "../utils/radix.js";
 import { parseIntRadix } from "../utils/num-parse.js";
 /**
  * Shared utilities for filesystem implementations
@@ -75,9 +76,7 @@ export function fromBuffer(
     return btoa(binary);
   }
   if (encoding === "hex") {
-    return Array.from(buffer)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return hexFromBytes(buffer);
   }
   if (encoding === "binary" || encoding === "latin1") {
     // Use Buffer if available (Node.js) - much more efficient and avoids spread operator limits
