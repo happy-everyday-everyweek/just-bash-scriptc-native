@@ -155,8 +155,12 @@ export function safeCopy<T extends Record<string, unknown>>(obj: T): T {
  * Check if object has own property safely (not inherited from prototype).
  */
 export function safeHasOwn(obj: object, key: string): boolean {
-  assertSafeObject(obj, "safeHasOwn");
-  return Object.hasOwn(obj, key);
+  const rec = obj as Record<string, unknown>;
+  const ks = Object.keys(rec);
+  for (let i = 0; i < ks.length; i++) {
+    if (ks[i] === key) return true;
+  }
+  return false;
 }
 
 /**

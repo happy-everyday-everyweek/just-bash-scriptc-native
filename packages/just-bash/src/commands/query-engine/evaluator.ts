@@ -30,6 +30,7 @@ import { deletePath, setPath } from "./path-operations.js";
 import {
   asQueryRecord,
   isSafeKey,
+  safeHasOwn,
   nullPrototypeCopy,
   nullPrototypeMerge,
   safeHasOwn,
@@ -48,25 +49,43 @@ import {
 
 export type { QueryValue } from "./value-operations.js";
 
+interface BoxedValue {
+  v: QueryValue;
+}
+
 class BreakError extends Error {
-  constructor(
-    public readonly label: string,
-    public readonly partialResults: QueryValue[] = [],
-  ) {
+  readonly label: string;
+  readonly partialResults: BoxedValue[];
+  constructor(label: string, results: QueryValue[] = []) {
     super(`break ${label}`);
     this.name = "BreakError";
+    this.label = label;
+    const boxed: BoxedValue[] = [];
+    for (let i = 0; i < results.length; i++) {
+      boxed.push({ v: results[i] });
+    }
+    this.partialResults = boxed;
   }
 
   withPrependedResults(results: QueryValue[]): BreakError {
-    return new BreakError(this.label, [...results, ...this.partialResults]);
+    const merged: QueryValue[] = [];
+    for (let i = 0; i < results.length; i++) {
+      merged.push(results[i]);
+    }
+    for (let i = 0; i < this.partialResults.length; i++) {
+      merged.push(this.partialResults[i].v);
+    }
+    return new BreakError(this.label, merged);
   }
 }
 
 // Custom error that preserves the original jq value
 class JqError extends Error {
-  constructor(public readonly value: QueryValue) {
+  readonly value: BoxedValue;
+  constructor(value: QueryValue) {
     super(typeof value === "string" ? value : JSON.stringify(value));
     this.name = "JqError";
+    this.value = { v: value };
   }
 }
 
@@ -115,29 +134,29 @@ export interface UserFuncRecord {
   params: string[];
   body: AstNode;
   closureKeys?: string[];
-  closureVals?: QueryValue[];
+  closureVals?: UserFuncRecord[];
 }
 
 export class VarStore {
   readonly keys: string[] = [];
-  readonly vals: QueryValue[] = [];
+  readonly vals: BoxedValue[] = [];
   get(k: string): QueryValue | undefined {
     const i = this.keys.indexOf(k);
-    return i === -1 ? undefined : this.vals[i];
+    return i === -1 ? undefined : this.vals[i].v;
   }
   set(k: string, v: QueryValue): void {
     const i = this.keys.indexOf(k);
     if (i === -1) {
       this.keys.push(k);
-      this.vals.push(v);
+      this.vals.push({ v });
     } else {
-      this.vals[i] = v;
+      this.vals[i] = { v };
     }
   }
   clone(): VarStore {
     const copy = new VarStore();
     for (let i = 0; i < this.keys.length; i++) {
-      copy.set(this.keys[i], this.vals[i]);
+      copy.set(this.keys[i], this.vals[i].v);
     }
     return copy;
   }
@@ -244,7 +263,7 @@ export function chargeQueryWork(ctx: EvalContext, count = 1): void {
       "iterations",
     );
   }
-  ctx.budget.operations += count;
+  ctx.budget.operations = ctx.budget.operations + count;
 }
 
 export function assertQueryResultCapacity(
@@ -288,6 +307,11 @@ function boundedFlatMap(
     appendQueryResults(ctx, results, mapped);
   }
   return results;
+}
+
+function hasVarsField(x: EvalContext | EvaluateOptions): boolean {
+  const probe = x as unknown as { vars: VarStore } | { limits?: QueryExecutionLimits };
+  return "vars" in probe;
 }
 
 function createContext(options?: EvaluateOptions): EvalContext {
@@ -419,7 +443,7 @@ function getValueAtPath(
       } else {
         // Defense against prototype pollution: only access own properties
         const obj = asQueryRecord(v);
-        if (obj && typeof key === "string" && Object.hasOwn(obj, key)) {
+        if (obj && typeof key === "string" && safeHasOwn(obj, key)) {
           v = obj[key];
         } else {
           return undefined;
@@ -594,8 +618,8 @@ export function evaluate(
   ctxOrOptions?: EvalContext | EvaluateOptions,
 ): QueryValue[] {
   let ctx: EvalContext =
-    ctxOrOptions && "vars" in ctxOrOptions
-      ? ctxOrOptions
+    ctxOrOptions && hasVarsField(ctxOrOptions)
+      ? (ctxOrOptions as EvalContext)
       : createContext(ctxOrOptions as EvaluateOptions | undefined);
 
   if (!ctx.defenseContextChecked) {
@@ -613,9 +637,9 @@ export function evaluate(
   }
 
   chargeQueryWork(ctx);
-  ctx.budget.callDepth++;
+  ctx.budget.callDepth = ctx.budget.callDepth + 1;
   if (ctx.budget.callDepth > ctx.limits.maxDepth) {
-    ctx.budget.callDepth--;
+    ctx.budget.callDepth = ctx.budget.callDepth - 1;
     throw queryLimitError(
       `query depth limit exceeded (${ctx.limits.maxDepth})`,
       "recursion",
@@ -630,8 +654,12 @@ export function evaluate(
     assertQueryResultCapacity(ctx, 0, results.length);
     return results;
   } finally {
-    ctx.budget.callDepth--;
+    ctx.budget.callDepth = ctx.budget.callDepth - 1;
   }
+}
+
+function evalCtx(value: QueryValue, ast: AstNode, ctx: EvalContext): QueryValue[] {
+  return evaluate(value, ast, ctx);
 }
 
 function evaluateNode(
@@ -651,7 +679,7 @@ function evaluateNode(
         if (obj) {
           // Defense against prototype pollution: only return own properties
           // This prevents access to inherited methods like __defineGetter__, constructor, etc.
-          if (!Object.hasOwn(obj, ast.name)) {
+          if (!safeHasOwn(obj, ast.name)) {
             return [null];
           }
           const result = obj[ast.name];
@@ -669,9 +697,9 @@ function evaluateNode(
     }
 
     case "Index": {
-      const bases = ast.base ? evaluate(value, ast.base, ctx) : [value];
+      const bases: QueryValue[] = ast.base ? evaluate(value, ast.base, ctx) : [value];
       return boundedFlatMap(ctx, bases, (v) => {
-        const indices = evaluate(v, ast.index, ctx);
+        const indices: QueryValue[] = evaluate(v, ast.index, ctx);
         return boundedFlatMap(ctx, indices, (idx) => {
           if (typeof idx === "number" && Array.isArray(v)) {
             // Handle NaN - return null for NaN index
@@ -679,14 +707,15 @@ function evaluateNode(
               return [null];
             }
             // Truncate float index to integer (jq behavior)
+            const av = v as QueryValue[];
             const truncated = Math.trunc(idx);
-            const i = truncated < 0 ? v.length + truncated : truncated;
-            return i >= 0 && i < v.length ? [v[i]] : [null];
+            const i = truncated < 0 ? av.length + truncated : truncated;
+            return i >= 0 && i < av.length ? [av[i]] : [null];
           }
           if (typeof idx === "string") {
             // Defense against prototype pollution: only return own properties
             const obj = asQueryRecord(v);
-            if (!obj || !Object.hasOwn(obj, idx)) {
+            if (!obj || !safeHasOwn(obj, idx)) {
               return [null];
             }
             return [obj[idx]];
@@ -704,9 +733,9 @@ function evaluateNode(
         if (!Array.isArray(v) && typeof v !== "string") {
           throw new Error(`Cannot slice ${typeof v} (${JSON.stringify(v)})`);
         }
-        const len = v.length;
-        const starts = ast.start ? evaluate(value, ast.start, ctx) : [0];
-        const ends = ast.end ? evaluate(value, ast.end, ctx) : [len];
+        const len = typeof v === "string" ? v.length : (v as QueryValue[]).length;
+        const starts: QueryValue[] = ast.start ? evaluate(value, ast.start, ctx) : [0];
+        const ends: QueryValue[] = ast.end ? evaluate(value, ast.end, ctx) : [len];
         assertQueryResultCapacity(ctx, 0, starts.length * ends.length);
         return boundedFlatMap(ctx, starts, (s) =>
           ends.map((e) => {
@@ -726,7 +755,7 @@ function evaluateNode(
                 : Math.ceil(eNum);
             const start = normalizeIndex(startRaw, len);
             const end = normalizeIndex(endRaw, len);
-            return Array.isArray(v) ? v.slice(start, end) : v.slice(start, end);
+            return typeof v === "string" ? v.slice(start, end) : (v as QueryValue[]).slice(start, end);
           }),
         );
       });
@@ -735,8 +764,17 @@ function evaluateNode(
     case "Iterate": {
       const bases = ast.base ? evaluate(value, ast.base, ctx) : [value];
       return boundedFlatMap(ctx, bases, (v) => {
-        if (Array.isArray(v)) return v;
-        if (v && typeof v === "object") return Object.values(v);
+        if (Array.isArray(v)) {
+          const av2 = v as QueryValue[];
+          return av2;
+        }
+        if (v && typeof v === "object") {
+          const rec2 = v as Record<string, QueryValue>;
+          const out2: QueryValue[] = [];
+          const ks2 = Object.keys(rec2);
+          for (let i = 0; i < ks2.length; i++) out2.push(rec2[ks2[i]]);
+          return out2;
+        }
         return [];
       });
     }
@@ -748,10 +786,16 @@ function evaluateNode(
       for (const v of leftResults) {
         try {
           if (leftPath !== null) {
-            const newCtx = {
-              ...ctx,
-              currentPath: [...(ctx.currentPath ?? []), ...leftPath],
-            };
+            const np: (string | number)[] = [];
+            if (ctx.currentPath) {
+              for (let i = 0; i < ctx.currentPath.length; i++) {
+                np.push(ctx.currentPath[i]);
+              }
+            }
+            for (let i = 0; i < leftPath.length; i++) {
+              np.push(leftPath[i]);
+            }
+            const newCtx: EvalContext = { ...ctx, currentPath: np };
             const next = evaluate(v, ast.right, newCtx);
             appendQueryResults(ctx, pipeResults, next);
           } else {
@@ -771,7 +815,10 @@ function evaluateNode(
       const leftResults = evaluate(value, ast.left, ctx);
       const rightResults = evaluate(value, ast.right, ctx);
       assertQueryResultCapacity(ctx, leftResults.length, rightResults.length);
-      return [...leftResults, ...rightResults];
+      const merged: QueryValue[] = [];
+      for (let i = 0; i < leftResults.length; i++) merged.push(leftResults[i]);
+      for (let i = 0; i < rightResults.length; i++) merged.push(rightResults[i]);
+      return merged;
     }
 
     case "Literal":
@@ -887,7 +934,7 @@ function evaluateNode(
           // jq: In catch handler, input is the error value (preserved if JqError)
           const errorVal =
             e instanceof JqError
-              ? e.value
+              ? e.value.v
               : e instanceof Error
                 ? e.message
                 : String(e);
@@ -940,7 +987,7 @@ function evaluateNode(
       // Note: ast.name includes the $ prefix (e.g., "$ENV")
       if (ast.name === "$ENV") {
         // Convert Map to object for jq's internal representation (null-prototype prevents prototype pollution)
-        return [ctx.env ? ctx.env : Object.create(null)];
+        return [ctx.env ? ctx.env : nullPrototypeCopy({})];
       }
       // $ARGS exposes named/positional external arguments. jq orders the keys
       // as { positional, named }.
@@ -958,16 +1005,17 @@ function evaluateNode(
             // defineProperty (vs `named[name] = value`) stores a "__proto__" key
             // as a plain own data property instead of hitting the accessor.
             // @banned-pattern-ignore: null-prototype target; keys are inert data.
-            Object.defineProperty(named, name, {
-              value,
-              enumerable: true,
-              writable: true,
-              configurable: true,
-            });
+            named[name] = value;
           }
         }
         const argsObj: Record<string, QueryValue> = Object.create(null);
-        argsObj.positional = ctx.positionalArgs ? [...ctx.positionalArgs] : [];
+        const posOut: QueryValue[] = [];
+        if (ctx.positionalArgs) {
+          for (let i = 0; i < ctx.positionalArgs.length; i++) {
+            posOut.push(ctx.positionalArgs[i]);
+          }
+        }
+        argsObj.positional = posOut;
         argsObj.named = named;
         return [argsObj];
       }
@@ -977,7 +1025,7 @@ function evaluateNode(
 
     case "Recurse": {
       const results: QueryValue[] = [];
-      const seen = new WeakSet<object>();
+      const seen: object[] = [];
       const stack: Array<{ val: QueryValue; depth: number }> = [
         { val: value, depth: 0 },
       ];
@@ -993,8 +1041,8 @@ function evaluateNode(
           );
         }
         if (val && typeof val === "object") {
-          if (seen.has(val as object)) continue;
-          seen.add(val as object);
+          if (seen.indexOf(val as object) !== -1) continue;
+          seen.push(val as object);
         }
         assertQueryResultCapacity(ctx, results.length);
         results.push(val);
@@ -1113,13 +1161,18 @@ function evaluateNode(
 
     case "Label": {
       try {
-        return evaluate(value, ast.body, {
+        const labeledCtx: EvalContext = {
           ...ctx,
           labels: pushLabel(ctx.labels, ast.name),
-        });
+        };
+        return evaluate(value, ast.body, labeledCtx);
       } catch (e) {
         if (e instanceof BreakError && e.label === ast.name) {
-          return e.partialResults;
+          const outBr: QueryValue[] = [];
+          for (let i = 0; i < e.partialResults.length; i++) {
+            outBr.push(e.partialResults[i].v);
+          }
+          return outBr;
         }
         throw e;
       }
@@ -1155,10 +1208,8 @@ function evaluateNode(
     }
 
     default: {
-      const _exhaustive: never = ast;
-      throw new Error(
-        `Unknown AST node type: ${(_exhaustive as AstNode).type}`,
-      );
+      const rawNode = ast as unknown as { type?: string };
+      throw new Error("Unknown AST node type: " + (rawNode.type ?? "unknown"));
     }
   }
 }
@@ -1193,7 +1244,12 @@ function applyUpdate(
           return current + newVal;
         if (Array.isArray(current) && Array.isArray(newVal)) {
           assertQueryResultCapacity(ctx, current.length, newVal.length);
-          return [...current, ...newVal];
+          const mergedAdd: QueryValue[] = [];
+          const clArr = current as QueryValue[];
+          const nlArr = newVal as QueryValue[];
+          for (let mi = 0; mi < clArr.length; mi++) mergedAdd.push(clArr[mi]);
+          for (let mi = 0; mi < nlArr.length; mi++) mergedAdd.push(nlArr[mi]);
+          return mergedAdd;
         }
         if (
           current &&
@@ -1249,7 +1305,7 @@ function applyUpdate(
               !Array.isArray(baseVal)
             ) {
               const obj = nullPrototypeCopy(baseVal);
-              const current = Object.hasOwn(obj, path.name)
+              const current = safeHasOwn(obj, path.name)
                 ? obj[path.name]
                 : undefined;
               safeSet(obj, path.name, transform(current));
@@ -1260,7 +1316,7 @@ function applyUpdate(
         }
         if (val && typeof val === "object" && !Array.isArray(val)) {
           const obj = nullPrototypeCopy(val);
-          const current = Object.hasOwn(obj, path.name)
+          const current = safeHasOwn(obj, path.name)
             ? obj[path.name]
             : undefined;
           safeSet(obj, path.name, transform(current));
@@ -1290,13 +1346,15 @@ function applyUpdate(
         if (path.base) {
           return updateRecursive(val, path.base, (baseVal) => {
             if (typeof idx === "number" && Array.isArray(baseVal)) {
-              const arr = [...baseVal];
+              const baseArr = baseVal as QueryValue[];
+              const arr: QueryValue[] = [];
+              for (let k = 0; k < baseArr.length; k++) {
+                arr.push(baseArr[k]);
+              }
               const i = idx < 0 ? arr.length + idx : idx;
               if (i >= 0) {
                 assertQueryResultCapacity(ctx, 0, i + 1);
-                if (arr.length <= i) arr.length = i + 1;
-                for (let fill = baseVal.length; fill < i; fill++)
-                  arr[fill] = null;
+                while (arr.length <= i) arr.push(null);
                 arr[i] = transform(arr[i]);
               }
               return arr;
@@ -1312,7 +1370,7 @@ function applyUpdate(
                 return baseVal;
               }
               const obj = nullPrototypeCopy(baseVal);
-              const current = Object.hasOwn(obj, idx) ? obj[idx] : undefined;
+              const current = safeHasOwn(obj, idx) ? obj[idx] : undefined;
               safeSet(obj, idx, transform(current));
               return obj;
             }
@@ -1331,12 +1389,15 @@ function applyUpdate(
             throw new Error("Out of bounds negative array index");
           }
           if (Array.isArray(val)) {
-            const arr = [...val];
+            const valArr = val as QueryValue[];
+            const arr: QueryValue[] = [];
+            for (let k = 0; k < valArr.length; k++) {
+              arr.push(valArr[k]);
+            }
             const i = idx < 0 ? arr.length + idx : idx;
             if (i >= 0) {
               assertQueryResultCapacity(ctx, 0, i + 1);
-              if (arr.length <= i) arr.length = i + 1;
-              for (let fill = val.length; fill < i; fill++) arr[fill] = null;
+              while (arr.length <= i) arr.push(null);
               arr[i] = transform(arr[i]);
             }
             return arr;
@@ -1344,7 +1405,8 @@ function applyUpdate(
           // Create array if val is null
           if (val === null || val === undefined) {
             assertQueryResultCapacity(ctx, 0, idx + 1);
-            const arr: QueryValue[] = new Array(idx + 1).fill(null);
+            const arr: QueryValue[] = [];
+            while (arr.length <= idx) arr.push(null);
             arr[idx] = transform(null);
             return arr;
           }
@@ -1361,7 +1423,7 @@ function applyUpdate(
             return val;
           }
           const obj = nullPrototypeCopy(val);
-          const current = Object.hasOwn(obj, idx) ? obj[idx] : undefined;
+          const current = safeHasOwn(obj, idx) ? obj[idx] : undefined;
           safeSet(obj, idx, transform(current));
           return obj;
         }
@@ -1738,7 +1800,12 @@ function evalBinaryOp(
           }
           if (Array.isArray(l) && Array.isArray(r)) {
             assertQueryResultCapacity(ctx, l.length, r.length);
-            return [...l, ...r];
+            const mergedPlus: QueryValue[] = [];
+            const lArrP = l as QueryValue[];
+            const rArrP = r as QueryValue[];
+            for (let mi = 0; mi < lArrP.length; mi++) mergedPlus.push(lArrP[mi]);
+            for (let mi = 0; mi < rArrP.length; mi++) mergedPlus.push(rArrP[mi]);
+            return mergedPlus;
           }
           if (
             l &&
@@ -1754,8 +1821,18 @@ function evalBinaryOp(
         case "-":
           if (typeof l === "number" && typeof r === "number") return l - r;
           if (Array.isArray(l) && Array.isArray(r)) {
-            const rSet = new Set(r.map((x) => JSON.stringify(x)));
-            return l.filter((x) => !rSet.has(JSON.stringify(x)));
+            const rArr = r as QueryValue[];
+            const lArr2 = l as QueryValue[];
+            const rKeys: string[] = [];
+            for (let i = 0; i < rArr.length; i++) {
+              rKeys.push(JSON.stringify(rArr[i]));
+            }
+            const outMinus: QueryValue[] = [];
+            for (let i = 0; i < lArr2.length; i++) {
+              const keyMinus = JSON.stringify(lArr2[i]);
+              if (rKeys.indexOf(keyMinus) === -1) outMinus.push(lArr2[i]);
+            }
+            return outMinus;
           }
           if (typeof l === "string" && typeof r === "string") {
             // jq: strings cannot be subtracted - format truncates long strings
@@ -1869,13 +1946,13 @@ function evalBuiltin(
   }
 
   // Delegate to extracted builtin handlers
-  const mathResult = evalMathBuiltin(value, name, args, ctx, evaluate);
+  const mathResult = evalMathBuiltin(value, name, args, ctx, evalCtx);
   if (mathResult !== null) return mathResult;
 
-  const stringResult = evalStringBuiltin(value, name, args, ctx, evaluate);
+  const stringResult = evalStringBuiltin(value, name, args, ctx, evalCtx);
   if (stringResult !== null) return stringResult;
 
-  const dateResult = evalDateBuiltin(value, name, args, ctx, evaluate);
+  const dateResult = evalDateBuiltin(value, name, args, ctx, evalCtx);
   if (dateResult !== null) return dateResult;
 
   const formatResult = evalFormatBuiltin(value, name, ctx.limits.maxDepth);
@@ -1884,7 +1961,7 @@ function evalBuiltin(
   const typeResult = evalTypeBuiltin(value, name);
   if (typeResult !== null) return typeResult;
 
-  const objectResult = evalObjectBuiltin(value, name, args, ctx, evaluate);
+  const objectResult = evalObjectBuiltin(value, name, args, ctx, evalCtx);
   if (objectResult !== null) return objectResult;
 
   const arrayResult = evalArrayBuiltin(
@@ -1906,7 +1983,7 @@ function evalBuiltin(
     name,
     args,
     ctx,
-    evaluate,
+    evalCtx,
     isTruthy,
     setPath,
     deletePath,
@@ -1920,7 +1997,7 @@ function evalBuiltin(
     name,
     args,
     ctx,
-    evaluate,
+    evalCtx,
     deepEqual,
   );
   if (indexResult !== null) return indexResult;
@@ -1930,7 +2007,7 @@ function evalBuiltin(
     name,
     args,
     ctx,
-    evaluate,
+    evalCtx,
     evaluateWithPartialResults,
     isTruthy,
     ExecutionLimitError,
@@ -1942,14 +2019,14 @@ function evalBuiltin(
     name,
     args,
     ctx,
-    evaluate,
+    evalCtx,
     isTruthy,
     getValueAtPath,
     evalBuiltin,
   );
   if (navigationResult !== null) return navigationResult;
 
-  const sqlResult = evalSqlBuiltin(value, name, args, ctx, evaluate, deepEqual);
+  const sqlResult = evalSqlBuiltin(value, name, args, ctx, evalCtx, deepEqual);
   if (sqlResult !== null) return sqlResult;
 
   switch (name) {
@@ -2137,7 +2214,7 @@ function evalBuiltin(
 
     case "env":
       // Convert Map to object for jq's internal representation (null-prototype prevents prototype pollution)
-      return [ctx.env ? ctx.env : Object.create(null)];
+      return [ctx.env ? ctx.env : nullPrototypeCopy({})];
 
     // recurse, recurse_down, walk, transpose, combinations, parent, parents, root
     // handled by evalNavigationBuiltin
@@ -2170,7 +2247,7 @@ function evalBuiltin(
           const cKeys = userFunc.closureKeys;
           const cVals = userFunc.closureVals;
           for (let ci = 0; ci < cKeys.length; ci++) {
-            newFuncs.set(cKeys[ci], cVals[ci] as unknown as UserFuncRecord);
+            newFuncs.set(cKeys[ci], cVals[ci]);
           }
         } else if (ctx.funcs) {
           for (let i = 0; i < ctx.funcs.keys.length; i++) {
