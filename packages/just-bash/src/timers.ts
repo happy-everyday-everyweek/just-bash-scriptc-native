@@ -9,24 +9,29 @@
  * IMPORTANT: This module must be imported eagerly (at Bash construction time),
  * not lazily during exec(), to ensure the capture happens before patching.
  */
-import { DefenseInDepthBox, bindCurrentContext } from "./security/defense-in-depth-box.js";
+import { DefenseInDepthBox } from "./security/defense-in-depth-box.js";
+
+const nativeSetTimeoutFn = globalThis.setTimeout;
+const nativeClearTimeoutFn = globalThis.clearTimeout;
+const nativeSetIntervalFn = globalThis.setInterval;
+const nativeClearIntervalFn = globalThis.clearInterval;
 
 const nativeSetTimeout = (callback: () => void, delay?: number): unknown =>
-  setTimeout(callback, delay ?? 0);
+  nativeSetTimeoutFn(callback, delay);
 const nativeClearTimeout = (handle: unknown): void => {
-  clearTimeout(handle as unknown as number);
+  nativeClearTimeoutFn(handle as unknown as number);
 };
 const nativeSetInterval = (callback: () => void, delay?: number): unknown =>
-  setInterval(callback, delay ?? 0);
+  nativeSetIntervalFn(callback, delay);
 const nativeClearInterval = (handle: unknown): void => {
-  clearInterval(handle as unknown as number);
+  nativeClearIntervalFn(handle as unknown as number);
 };
 
 type TimerCallback = (...args: unknown[]) => unknown;
 
 function bindTimerCallback<T>(callback: T): T {
   if (typeof callback !== "function") return callback;
-  return bindCurrentContext(callback as TimerCallback) as T;
+  return DefenseInDepthBox.bindCurrentContext(callback as TimerCallback) as T;
 }
 
 export const _setTimeout = (callback: () => void, delay?: number): unknown => {
