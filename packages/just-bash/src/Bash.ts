@@ -92,6 +92,31 @@ interface DefenseHandleLike {
   run(fn: () => Promise<BashExecResult>): Promise<BashExecResult>;
 }
 
+/**
+ * Sync file-writing view of a filesystem, used to create the /bin and
+ * /usr/bin command stubs that PATH resolution depends on. The narrow view is
+ * required so the call goes through the receiver: a captured unbound method
+ * loses `this` and makes InMemoryFs/OverlayFs throw.
+ */
+interface SyncWriteFs {
+  writeFileSync(path: string, content: string): void;
+}
+
+function isSyncWriteFs(fs: IFileSystem): fs is IFileSystem & SyncWriteFs {
+  const maybeFs = fs as unknown as Partial<SyncWriteFs>;
+  return typeof maybeFs.writeFileSync === "function";
+}
+
+/** Sync directory-creation view of a filesystem, used for exec-time cwd setup. */
+interface SyncMkdirFs {
+  mkdirSync(path: string, options?: { recursive?: boolean }): void;
+}
+
+function isSyncMkdirFs(fs: IFileSystem): fs is IFileSystem & SyncMkdirFs {
+  const maybeFs = fs as unknown as Partial<SyncMkdirFs>;
+  return typeof maybeFs.mkdirSync === "function";
+}
+
 export type { ExecutionLimitProfile, ExecutionLimits } from "./limits.js";
 
 /**
@@ -512,15 +537,13 @@ export class Bash {
 
     // Structural check instead of `instanceof`: only filesystems with a sync
     // mkdir can be prepared this way, and `instanceof` on interface-typed
-    // values is unavailable in a compiled build.
-    const mkdirSync = (
-      fs as unknown as {
-        mkdirSync?: (path: string, options?: { recursive?: boolean }) => void;
-      }
-    ).mkdirSync;
-    if (cwd !== "/" && mkdirSync !== undefined) {
+    // values is unavailable in a compiled build. The method is invoked on its
+    // receiver: InMemoryFs.mkdirSync reads `this.data`, so a captured unbound
+    // reference would throw inside the swallow-all catch below.
+    if (cwd !== "/" && isSyncMkdirFs(fs)) {
+      const syncFs = fs as unknown as SyncMkdirFs;
       try {
-        mkdirSync(cwd, { recursive: true });
+        syncFs.mkdirSync(cwd, { recursive: true });
       } catch {
         // Ignore errors
       }
@@ -611,21 +634,16 @@ export class Bash {
     // Works for both InMemoryFs and OverlayFs (both have writeFileSync)
     // Commands are registered to both locations like real Linux systems
     // (where /bin is often a symlink to /usr/bin on modern systems)
-    const fs = this.fs as {
-      writeFileSync?: (path: string, content: string) => void;
-    };
-    // Bind the optional method to a local first: an optional function member
-    // cannot be called straight off the receiver in a compiled build.
-    const writeStub = fs.writeFileSync;
-    if (writeStub !== undefined) {
+    if (isSyncWriteFs(this.fs)) {
+      const stubFs = this.fs as unknown as SyncWriteFs;
       const stub = `#!/bin/bash\n# Built-in command: ${command.name}\n`;
       try {
-        writeStub(`/bin/${command.name}`, stub);
+        stubFs.writeFileSync(`/bin/${command.name}`, stub);
       } catch {
         // Ignore errors
       }
       try {
-        writeStub(`/usr/bin/${command.name}`, stub);
+        stubFs.writeFileSync(`/usr/bin/${command.name}`, stub);
       } catch {
         // Ignore errors
       }
