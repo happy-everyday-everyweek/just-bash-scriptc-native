@@ -146,17 +146,19 @@ export const touchCommand: RuntimeCommand = {
       };
     }
 
-    // Parse the date if provided
-    let targetTime: Date | null = null;
+    // Parse the date if provided. Held as epoch milliseconds: a `Date | null`
+    // local is a union arm with no home in a compiled build.
+    let targetTimeMs: number | null = null;
     if (dateStr !== null) {
-      targetTime = parseDateString(dateStr);
-      if (targetTime === null) {
+      const parsedTarget = parseDateString(dateStr);
+      if (parsedTarget === null) {
         return {
           stdout: "",
           stderr: `touch: invalid date format '${dateStr}'\n`,
           exitCode: 1,
         };
       }
+      targetTimeMs = parsedTarget.getTime();
     }
 
     let stderr = "";
@@ -176,7 +178,8 @@ export const touchCommand: RuntimeCommand = {
         }
 
         // Update timestamp if we have utimes support
-        const mtime = targetTime ?? new Date();
+        const mtime =
+          targetTimeMs !== null ? new Date(targetTimeMs) : new Date();
         await ctx.fs.utimes(fullPath, mtime, mtime);
       } catch (error) {
         stderr += `touch: cannot touch '${file}': ${getErrorMessage(error)}\n`;

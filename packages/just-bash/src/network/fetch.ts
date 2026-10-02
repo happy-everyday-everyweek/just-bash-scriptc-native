@@ -8,7 +8,7 @@ import { parseIntDecimal } from "../utils/num-parse.js";
 
 import type { GuardedFetchOptions } from "guarded-fetch";
 import { combineAbortSignals } from "../abort-signals.js";
-import { DefenseInDepthBox } from "../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrustedAsync } from "../security/defense-in-depth-box.js";
 import { _clearTimeout, _setTimeout } from "../timers.js";
 import {
   isPrivateIp,
@@ -445,7 +445,7 @@ export function createSecureFetch(config: NetworkConfig): SecureFetch {
         throwIfAborted(combinedAbort.signal);
 
         // Keep transport creation inside the trusted boundary.
-        const response = await DefenseInDepthBox.runTrustedAsync(async () => {
+        const response = await runTrustedAsync(async () => {
           // Strip user credentials; firewall credentials are re-applied below.
           let userHeaders = currentHeaders;
           if (credentialsStripped && userHeaders) {

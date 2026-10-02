@@ -306,11 +306,12 @@ function parseIpv6(hostname: string): number[] | null {
     return null;
   }
 
-  const hextets = [
-    ...(left as number[]),
-    ...new Array(zerosToInsert).fill(0),
-    ...(right as number[]),
-  ];
+  // Assembled with pushes: spreading `new Array(n).fill(0)` has no static
+  // representation.
+  const hextets: number[] = [];
+  for (const part of left as number[]) hextets.push(part);
+  for (let i = 0; i < zerosToInsert; i += 1) hextets.push(0);
+  for (const part of right as number[]) hextets.push(part);
 
   if (ipv4Tail) {
     hextets.push((ipv4Tail[0] << 8) | ipv4Tail[1]);

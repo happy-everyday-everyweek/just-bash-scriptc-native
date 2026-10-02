@@ -370,7 +370,7 @@ export class WorkerDefenseInDepth {
     original: T,
     path: string,
     violationType: SecurityViolationType,
-    allowedKeys?: Set<string>,
+    allowedKeys: string[] | undefined,
   ): T {
     const self = this;
     const auditMode = this.config.auditMode;
@@ -385,7 +385,11 @@ export class WorkerDefenseInDepth {
           return Reflect.get(target, prop, receiver);
         }
         // Allow specific keys through (e.g., Node.js internal env vars like FORCE_COLOR)
-        if (allowedKeys && typeof prop === "string" && allowedKeys.has(prop)) {
+        if (
+          allowedKeys !== undefined &&
+          typeof prop === "string" &&
+          allowedKeys.indexOf(prop) !== -1
+        ) {
           return Reflect.get(target, prop, receiver);
         }
         self.inTrap = true;

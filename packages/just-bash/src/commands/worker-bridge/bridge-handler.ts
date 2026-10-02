@@ -13,7 +13,7 @@ import {
 } from "../../fs/sanitize-error.js";
 import { shellJoinArgs } from "../../helpers/shell-quote.js";
 import type { SecureFetch } from "../../network/fetch.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrustedAsync } from "../../security/defense-in-depth-box.js";
 import { _clearFiniteTimeout, _setTimeoutIfFinite } from "../../timers.js";
 import type { CommandExecOptions, ExecResult } from "../../types.js";
 import {
@@ -616,7 +616,7 @@ export class BridgeHandler {
 
     try {
       const resultJson = await this.raceDeadline(() =>
-        DefenseInDepthBox.runTrustedAsync(() => invokeToolFn(path, argsJson)),
+        runTrustedAsync(() => invokeToolFn(path, argsJson)),
       );
       this.protocol.setResultFromString(resultJson);
       this.protocol.setStatus(Status.SUCCESS);

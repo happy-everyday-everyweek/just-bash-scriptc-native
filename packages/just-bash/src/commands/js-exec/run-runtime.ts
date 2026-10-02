@@ -17,7 +17,7 @@ import {
 import { mapToRecord } from "../../helpers/env.js";
 import { shellJoinArgs } from "../../helpers/shell-quote.js";
 import { getErrorMessage } from "../../interpreter/helpers/errors.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, bindCurrentContext, runTrusted, runTrustedAsync, runUntrustedAsync } from "../../security/defense-in-depth-box.js";
 import { _clearFiniteTimeout, _setTimeoutIfFinite } from "../../timers.js";
 import type {
   CommandExecOptions,
@@ -624,7 +624,7 @@ const enqueue = <T>(
   operation: () => Promise<T>,
   signal: AbortSignal | undefined,
 ): Promise<T> => {
-  const boundOperation = DefenseInDepthBox.bindCurrentContext(operation);
+  const boundOperation = bindCurrentContext(operation);
   return new Promise<T>((resolve, reject) => {
     const queued: QueuedExecution = {
       canceled: false,
@@ -794,7 +794,7 @@ async function executeWithRunInner(
     try {
       return {
         ok: true,
-        value: await DefenseInDepthBox.runUntrustedAsync(operation),
+        value: await runUntrustedAsync(operation),
       };
     } catch (error) {
       return { ok: false, error: sanitize(getErrorMessage(error)) };
@@ -853,7 +853,7 @@ async function executeWithRunInner(
     );
     return output;
   }
-  const runner = DefenseInDepthBox.runTrusted(() =>
+  const runner = runTrusted(() =>
     createRunner({
       syncHostFunctions: {
         [hostNamespace]: {
@@ -1014,7 +1014,7 @@ async function executeWithRunInner(
             return await attempt(async () => {
               if (!ctx.invokeTool) throw new Error(`Unknown tool: ${path}`);
               const { abortSignal } = getHostFunctionContext();
-              return await DefenseInDepthBox.runTrustedAsync(
+              return await runTrustedAsync(
                 () =>
                   ctx.invokeTool?.(
                     path,
@@ -1105,7 +1105,7 @@ ${bootstrap}
         )});`;
       }
       try {
-        return await DefenseInDepthBox.runUntrustedAsync(async () => {
+        return await runUntrustedAsync(async () => {
           const stat = await ctx.fs.stat(specifier);
           if (stat.size > maxModuleReadBytes) {
             throw new Error(
@@ -1168,7 +1168,7 @@ ${bootstrap}
   try {
     await jsExecContext.run(true, async () => {
       let runPromise!: ReturnType<typeof runner.run>;
-      DefenseInDepthBox.runTrusted(() => {
+      runTrusted(() => {
         runPromise = runner.run({
           abortSignal,
           limits: {

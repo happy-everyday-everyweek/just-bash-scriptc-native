@@ -1,7 +1,7 @@
 // RuntimeCommand registry with statically analyzable lazy loading
 // Each command has an explicit loader function for bundler compatibility (Next.js, etc.)
 
-import { DefenseInDepthBox } from "../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrustedAsync } from "../security/defense-in-depth-box.js";
 import type {
   ExecResult,
   RuntimeCommand,
@@ -514,7 +514,7 @@ function createLazyCommand(def: LazyCommandDef): RuntimeCommand {
         // Module loading may access blocked globals (e.g., worker_threads
         // uses SharedArrayBuffer, sql.js uses WebAssembly), so we suspend
         // blocking during the import.
-        cmd = await DefenseInDepthBox.runTrustedAsync(() => def.load());
+        cmd = await runTrustedAsync(() => def.load());
         cache.set(def.name, cmd);
       }
 

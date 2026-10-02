@@ -56,7 +56,9 @@ export interface BlockedGlobal {
    * read certain properties (e.g., process.env keys) during module loading
    * within the AsyncLocalStorage context, so they must be allowed through.
    */
-  allowedKeys?: Set<string>;
+  // A plain array, not a `Set`: an optional `Set` member is a union arm with
+  // no home in a compiled record.
+  allowedKeys?: string[];
 }
 
 let blockedGlobalViolationTypes: string[] | undefined;
@@ -129,7 +131,7 @@ export function getBlockedGlobals(): BlockedGlobal[] {
       // Node.js internals and bundled dependencies read these env vars
       // during module loading, file watching, and I/O within the
       // AsyncLocalStorage context. None are user secrets.
-      allowedKeys: new Set([
+      allowedKeys: [
         // Node.js core
         "NODE_V8_COVERAGE",
         "NODE_DEBUG",
@@ -145,7 +147,7 @@ export function getBlockedGlobals(): BlockedGlobal[] {
         "__MINIMATCH_TESTING_PLATFORM__", // minimatch
         "LOG_TOKENS", // query engine debug logging
         "LOG_STREAM", // query engine debug logging
-      ]),
+      ],
     },
     {
       prop: "binding",

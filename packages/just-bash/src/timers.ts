@@ -9,7 +9,7 @@
  * IMPORTANT: This module must be imported eagerly (at Bash construction time),
  * not lazily during exec(), to ensure the capture happens before patching.
  */
-import { DefenseInDepthBox } from "./security/defense-in-depth-box.js";
+import { DefenseInDepthBox, bindCurrentContext } from "./security/defense-in-depth-box.js";
 
 const nativeSetTimeout = (callback: () => void, delay?: number): unknown =>
   setTimeout(callback, delay ?? 0);
@@ -26,7 +26,7 @@ type TimerCallback = (...args: unknown[]) => unknown;
 
 function bindTimerCallback<T>(callback: T): T {
   if (typeof callback !== "function") return callback;
-  return DefenseInDepthBox.bindCurrentContext(callback as TimerCallback) as T;
+  return bindCurrentContext(callback as TimerCallback) as T;
 }
 
 export const _setTimeout = (callback: () => void, delay?: number): unknown => {

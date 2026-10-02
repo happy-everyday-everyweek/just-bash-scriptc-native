@@ -22,7 +22,7 @@ import type {
   CommandExecutionBudget,
   ResourceLease,
 } from "../../execution-scope.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrustedAsync } from "../../security/defense-in-depth-box.js";
 import { CodecBudget } from "../compression/codec-budget.js";
 import { bzip2Compress } from "./bzip2-compress.js";
 
@@ -36,7 +36,7 @@ async function getLzma(): Promise<typeof import("node-liblzma")> {
   if (lzmaLoadError) throw lzmaLoadError;
   try {
     // Native addons use dlopen which is blocked by defense-in-depth
-    lzma = await DefenseInDepthBox.runTrustedAsync(
+    lzma = await runTrustedAsync(
       () => import("node-liblzma"),
     );
     return lzma;
@@ -57,7 +57,7 @@ async function getZstd(): Promise<typeof import("@mongodb-js/zstd")> {
   if (zstd) return zstd;
   if (zstdLoadError) throw zstdLoadError;
   try {
-    zstd = await DefenseInDepthBox.runTrustedAsync(
+    zstd = await runTrustedAsync(
       () => import("@mongodb-js/zstd"),
     );
     return zstd;

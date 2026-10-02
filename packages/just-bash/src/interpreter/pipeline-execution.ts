@@ -88,8 +88,11 @@ export async function executePipeline(
 
     // Save environment for commands running in subshell context
     // This prevents variable assignments (e.g., ${cmd=echo}) from leaking to parent
-    const savedEnv = runsInSubshell ? copyMap(ctx.state.env) : null;
-    const savedArrays = runsInSubshell ? cloneArrays(ctx.state.arrays) : null;
+    // Copies are always taken: a `Map | null` local is a union arm with no home
+    // in a compiled build, so the snapshots are unconditional and only restored
+    // when the stage really ran in a subshell context.
+    const savedEnv = copyMap(ctx.state.env);
+    const savedArrays = cloneArrays(ctx.state.arrays);
 
     let result: ExecResult;
     const outputCheckpoint = ctx.executionScope.outputBytesUsed;
@@ -124,9 +127,9 @@ export async function executePipeline(
         };
       } else {
         // Restore environment before re-throwing
-        if (savedEnv) {
+        if (runsInSubshell) {
           ctx.state.env = savedEnv;
-          ctx.state.arrays = savedArrays ?? new Map();
+          ctx.state.arrays = savedArrays;
         }
         throw error;
       }
@@ -147,9 +150,9 @@ export async function executePipeline(
     }
 
     // Restore environment for subshell commands to prevent variable assignment leakage
-    if (savedEnv) {
+    if (runsInSubshell) {
       ctx.state.env = savedEnv;
-      ctx.state.arrays = savedArrays ?? new Map();
+      ctx.state.arrays = savedArrays;
     }
 
     // Charge every stage before it can become a retained pipeline

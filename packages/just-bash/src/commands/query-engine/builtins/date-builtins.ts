@@ -31,7 +31,14 @@ function parseIsoUtc(value: string): Date {
   );
   if (!match) return new Date(Number.NaN);
 
-  const [, year, month, day, hour, minute, second] = match.map(Number);
+  // Group-by-group conversion: `match.map(Number)` passes a function value
+  // through a call the compiler cannot represent.
+  const year = regexGroupToNumber(match[1]);
+  const month = regexGroupToNumber(match[2]);
+  const day = regexGroupToNumber(match[3]);
+  const hour = regexGroupToNumber(match[4]);
+  const minute = regexGroupToNumber(match[5]);
+  const second = regexGroupToNumber(match[6]);
   const milliseconds = Date.UTC(year, month - 1, day, hour, minute, second);
   if (!Number.isFinite(milliseconds)) return new Date(Number.NaN);
   const date = new Date(milliseconds);
@@ -224,4 +231,10 @@ export function evalDateBuiltin(
     default:
       return null;
   }
+}
+
+/** Numeric value of an optional regex group (missing groups become NaN). */
+function regexGroupToNumber(value: string | undefined): number {
+  if (value === undefined) return Number.NaN;
+  return Number(value);
 }

@@ -25,7 +25,7 @@ import {
 import { resolveFileIdentity } from "../../fs/traversal.js";
 import { getErrorMessage } from "../../interpreter/helpers/errors.js";
 import { bindDefenseContextCallback } from "../../security/defense-context.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrusted, runTrustedAsync } from "../../security/defense-in-depth-box.js";
 import type {
   ExecResult,
   RuntimeCommand,
@@ -336,7 +336,7 @@ function parseArgs(args: string[]):
 
 // Get SQLite version from sql.js
 async function getSqliteVersion(): Promise<string> {
-  const SQL = await DefenseInDepthBox.runTrustedAsync(() => initSqlJs());
+  const SQL = await runTrustedAsync(() => initSqlJs());
   const db = new SQL.Database();
   try {
     const result = db.exec("SELECT sqlite_version()");
@@ -599,7 +599,7 @@ async function executeInWorker(
       if (controller.isCanceled) return;
 
       try {
-        worker = DefenseInDepthBox.runTrusted(() =>
+        worker = runTrusted(() =>
           _internals.createWorker(workerPath, input),
         );
       } catch (error) {

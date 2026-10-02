@@ -105,12 +105,20 @@ export function setArrayElement(
 export function assertArrayKeysFit(
   ctx: InterpreterContext,
   arrayName: string,
-  keys: Iterable<string | number>,
+  // A plain array of keys: `Iterable` has no lowering, and every caller passes
+  // an array anyway.
+  keys: (string | number)[],
   replace = false,
 ): void {
-  const prospective = new Set<string>(
-    replace ? [] : (getArray(ctx, arrayName)?.elements.keys() ?? []),
-  );
+  const prospective = new Set<string>();
+  if (!replace) {
+    const existing = getArray(ctx, arrayName);
+    if (existing !== undefined) {
+      for (const key of mapKeys(existing.elements)) {
+        prospective.add(key);
+      }
+    }
+  }
   for (const key of keys) {
     prospective.add(String(key));
     if (prospective.size > ctx.limits.maxArrayElements) {

@@ -22,7 +22,7 @@ import { mapToRecord } from "../../helpers/env.js";
 import { getErrorMessage } from "../../interpreter/helpers/errors.js";
 
 import { bindDefenseContextCallback } from "../../security/defense-context.js";
-import { DefenseInDepthBox } from "../../security/defense-in-depth-box.js";
+import { DefenseInDepthBox, runTrusted } from "../../security/defense-in-depth-box.js";
 import type {
   ExecResult,
   RuntimeCommand,
@@ -295,7 +295,7 @@ function processNextExecution(queueState: QueueState): void {
   // per worker lifetime, not per execution).
   let worker: Worker;
   try {
-    worker = DefenseInDepthBox.runTrusted(
+    worker = runTrusted(
       // @banned-pattern-ignore: constructor is immediately owned by next.controller lifecycle
       () => new Worker(workerPath, { workerData: next.input }),
     );
