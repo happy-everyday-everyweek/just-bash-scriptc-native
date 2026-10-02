@@ -278,7 +278,8 @@ async function runBody(
   const savedSubstitutionExitCode = ctx.state.lastSubstitutionExitCode;
 
   ctx.substitutionDepth = currentDepth + 1;
-  ctx.state.bashPid = ctx.state.nextVirtualPid++;
+  ctx.state.bashPid = ctx.state.nextVirtualPid;
+  ctx.state.nextVirtualPid = ctx.state.nextVirtualPid + 1;
   ctx.state.suppressVerbose = true;
   if (stdin !== undefined) ctx.state.groupStdin = stdin;
 

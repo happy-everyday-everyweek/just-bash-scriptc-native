@@ -132,7 +132,7 @@ export function globignorePatternToRegex(pattern: string): RegexLike {
   let regex = "^";
 
   for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
 
     if (c === "*") {
       // In GLOBIGNORE, * does NOT match /
@@ -257,7 +257,7 @@ export function findMatchingParen(pattern: string, openIdx: number): number {
   let depth = 1;
   let i = openIdx + 1;
   while (i < pattern.length && depth > 0) {
-    const c = pattern[i];
+    const c = pattern.charAt(i);
     if (c === "\\") {
       i += 2; // Skip escaped char
       continue;

@@ -146,7 +146,7 @@ export function parseAssocArrayLiteral(
         content.charAt(pos) !== "]" &&
         content.charAt(pos) !== "="
       ) {
-        key += content[pos];
+        key += content.charAt(pos);
         pos++;
       }
     }
@@ -169,9 +169,9 @@ export function parseAssocArrayLiteral(
       while (pos < content.length && content.charAt(pos) !== quote) {
         if (content.charAt(pos) === "\\" && pos + 1 < content.length) {
           pos++;
-          value += content[pos];
+          value += content.charAt(pos);
         } else {
-          value += content[pos];
+          value += content.charAt(pos);
         }
         pos++;
       }

@@ -119,7 +119,8 @@ async function executeCommandSubstitutionFromString(
 
   // Execute in subshell-like context
   const savedBashPid = ctx.state.bashPid;
-  ctx.state.bashPid = ctx.state.nextVirtualPid++;
+  ctx.state.bashPid = ctx.state.nextVirtualPid;
+  ctx.state.nextVirtualPid = ctx.state.nextVirtualPid + 1;
   const savedEnv = copyMap(ctx.state.env);
   const savedArrays = cloneArrays(ctx.state.arrays);
   const savedCwd = ctx.state.cwd;

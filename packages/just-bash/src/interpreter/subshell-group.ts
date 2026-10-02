@@ -66,7 +66,8 @@ export async function executeSubshell(
   const restoreState = beginIsolatedShellState(ctx.state);
   ctx.state.parentHasLoopContext = parentLoopDepth > 0;
   ctx.state.loopDepth = 0;
-  ctx.state.bashPid = ctx.state.nextVirtualPid++;
+  ctx.state.bashPid = ctx.state.nextVirtualPid;
+  ctx.state.nextVirtualPid = ctx.state.nextVirtualPid + 1;
   try {
     return await withPreparedRedirections(
       ctx,
@@ -358,7 +359,8 @@ export async function executeUserScript(
   // Set up subshell-like environment
   ctx.state.parentHasLoopContext = parentLoopDepth > 0;
   ctx.state.loopDepth = 0;
-  ctx.state.bashPid = ctx.state.nextVirtualPid++;
+  ctx.state.bashPid = ctx.state.nextVirtualPid;
+  ctx.state.nextVirtualPid = ctx.state.nextVirtualPid + 1;
   if (stdin) {
     ctx.state.groupStdin = stdin;
   }
