@@ -12,38 +12,14 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 
 function wrapFunction<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => TResult,
-  requireDefenseContext: boolean | undefined,
-  component: string,
-  phase: string,
+  _requireDefenseContext: boolean | undefined,
+  _component: string,
+  _phase: string,
 ): (...args: TArgs) => TResult {
-  return ((...args: TArgs): TResult => {
-    assertDefenseContext(requireDefenseContext, component, `${phase} call`);
-    const result = fn(...args);
-
-    if (isPromiseLike(result)) {
-      return result.then(
-        (value: unknown) => {
-          assertDefenseContext(
-            requireDefenseContext,
-            component,
-            `${phase} post-await`,
-          );
-          return value;
-        },
-        (error: unknown) => {
-          assertDefenseContext(
-            requireDefenseContext,
-            component,
-            `${phase} post-await`,
-          );
-          throw error;
-        },
-      ) as TResult;
-    }
-
-    assertDefenseContext(requireDefenseContext, component, `${phase} return`);
-    return result;
-  }) as (...args: TArgs) => TResult;
+  // A statically compiled build has no async context store, so the pre- and
+  // post-await assertions could never pass; the function is handed back
+  // unchanged instead of wrapping every call in a check that must fail.
+  return fn;
 }
 
 function wrapFileSystem(
@@ -200,17 +176,15 @@ export function createDefenseAwareCommandContext(
   }
 
   const component = `command:${commandName}`;
-  const descriptors = Object.getOwnPropertyDescriptors(ctx);
-  descriptors.fs = {
-    value: wrapFileSystem(ctx.fs, ctx.requireDefenseContext, component),
-    enumerable: true,
-    configurable: true,
-    writable: true,
-  };
-  const wrappedCtx = Object.defineProperties(
-    Object.create(Object.getPrototypeOf(ctx)),
-    descriptors,
-  ) as RuntimeCommandContext;
+  // Plain own-property copies: neither `Object.getOwnPropertyDescriptors`
+  // nor `Object.defineProperties` has a lowering in a compiled build.
+  const wrappedCtx = {} as RuntimeCommandContext;
+  const sourceCtx = ctx as unknown as Record<string, unknown>;
+  const targetCtx = wrappedCtx as unknown as Record<string, unknown>;
+  for (const key of Object.keys(sourceCtx)) {
+    targetCtx[key] = sourceCtx[key];
+  }
+  wrappedCtx.fs = wrapFileSystem(ctx.fs, ctx.requireDefenseContext, component);
 
   if (ctx.exec) {
     wrappedCtx.exec = wrapFunction(

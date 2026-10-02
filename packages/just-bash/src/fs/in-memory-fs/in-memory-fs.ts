@@ -251,7 +251,13 @@ export class InMemoryFs implements IFileSystem {
 
     if (initialFiles) {
       for (const [path, value] of Object.entries(initialFiles)) {
-        if (isFileInit(value)) {
+        // A provider function passed as a file value is stored lazily and only
+        // evaluated on first read. The check goes through `unknown` because an
+        // index-signature type cannot carry a function arm in this build.
+        const raw: unknown = value;
+        if (typeof raw === "function") {
+          this.writeFileLazy(path, raw as () => string | Uint8Array);
+        } else if (isFileInit(value)) {
           // Extended init with metadata
           this.writeFileSync(path, value.content, undefined, {
             mode: value.mode,
@@ -341,10 +347,15 @@ export class InMemoryFs implements IFileSystem {
     path: string,
     entry: LazyFileEntry,
   ): Promise<FileEntry> {
-    // Providers are synchronous by construction (see LazyFileEntry). The
-    // trusted-scope wrapper is skipped: AsyncLocalStorage is unavailable in a
-    // statically compiled build, so the wrapper never had an effect there.
-    const content = entry.lazy();
+    // The declared provider type is synchronous, because a `Promise<...>` arm
+    // inside the union member blocks compilation. A host-supplied provider can
+    // still return a promise at runtime, so the result is awaited here: async
+    // providers keep working while the type stays compilable.
+    const produced = entry.lazy() as unknown as
+      | string
+      | Uint8Array
+      | Promise<string | Uint8Array>;
+    const content = await produced;
     const buffer =
       typeof content === "string" ? textEncoder.encode(content) : content;
     const materialized: FileEntry = {

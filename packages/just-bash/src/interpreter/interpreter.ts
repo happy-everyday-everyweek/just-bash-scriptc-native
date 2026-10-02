@@ -162,9 +162,11 @@ export class Interpreter {
       limits: options.limits,
       executionScope: options.executionScope,
       execFn: options.exec,
-      executeScript: this.executeScript.bind(this),
-      executeStatement: this.executeStatement.bind(this),
-      executeCommand: this.executeCommand.bind(this),
+      // Arrow wrappers instead of `Function.prototype.bind`: a compiled call
+      // site resolves calls directly and has no bound-function runtime.
+      executeScript: (node) => this.executeScript(node),
+      executeStatement: (statement) => this.executeStatement(statement),
+      executeCommand: (command, stdin) => this.executeCommand(command, stdin),
       fetch: options.fetch,
       sleep: options.sleep,
       trace: options.trace,
@@ -188,7 +190,7 @@ export class Interpreter {
       type: "missing_defense_context",
       message,
       path: "DefenseInDepthBox.context",
-      stack: new Error().stack,
+      stack: "",
       executionId: defenseCurrentExecutionId(),
     });
   }
